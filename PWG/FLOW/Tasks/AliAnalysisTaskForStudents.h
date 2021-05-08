@@ -99,26 +99,26 @@ private:
   TH1F *fPtHist;                 // atrack->Pt()
   Int_t fNbinsPt;                // number of bins
   Float_t fMinBinPt;             // min bin
-  Float_t fMaxBinPt;             // min bin
+  Float_t fMaxBinPt;             // max bin
   TH1F *fPhiHist;                // atrack->Phi()
   Int_t fNbinsPhi;               // number of bins
   Float_t fMinBinPhi;            // min bin
-  Float_t fMaxBinPhi;            // min bin
+  Float_t fMaxBinPhi;            // max bin
   TH1F *fEtaHist;                // atrack->Eta()
   Int_t fNbinsEta;               // number of bins
   Float_t fMinBinEta;            // min bin
-  Float_t fMaxBinEta;            // min bin
+  Float_t fMaxBinEta;            // max bin
   TH1F *fMulHist;                // AliAODEvent->GetMultiplicity()
   Int_t fNbinsMul;               // number of bins
   Float_t fMinBinMul;            // min bin
-  Float_t fMaxBinMul;            // min bin
+  Float_t fMaxBinMul;            // max bin
 
   // 2.) Final results:
   TList *fFinalResultsList;  // list to hold all histograms with final results
   TH1F *fAveragePhiHist;     // Mean of Phi
   Int_t fNbinsAveragePhi;    // number of bins
   Float_t fMinBinAveragePhi; // min bin
-  Float_t fMaxBinAveragePhi; // min bin
+  Float_t fMaxBinAveragePhi; // max bin
 
   // Increase this counter in each new version:
   ClassDef(AliAnalysisTaskForStudents, 1);
