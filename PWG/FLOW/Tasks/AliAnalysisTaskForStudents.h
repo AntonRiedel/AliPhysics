@@ -2,7 +2,7 @@
  * File              : AliAnalysisTaskForStudents.h
  * Author            : Anton Riedel <anton.riedel@tum.de>
  * Date              : 07.05.2021
- * Last Modified Date: 08.05.2021
+ * Last Modified Date: 14.05.2021
  * Last Modified By  : Anton Riedel <anton.riedel@tum.de>
  */
 /*
@@ -57,33 +57,39 @@ public:
   void SetFinalResultsList(TList *const frl) { this->fFinalResultsList = frl; };
   TList *GetFinalResultsList() const { return this->fFinalResultsList; }
 
-  void SetPtBinning(Int_t const nbins, Float_t min, Float_t max) {
+  void SetPtBinning(Int_t const nbins, const Float_t min, const Float_t max) {
     this->fNbinsPt = nbins;
     this->fMinBinPt = min;
     this->fMaxBinPt = max;
   };
-  void SetPhiBinning(Int_t const nbins, Float_t min, Float_t max) {
+  void SetPhiBinning(Int_t const nbins, const Float_t min, const Float_t max) {
     this->fNbinsPhi = nbins;
     this->fMinBinPhi = min;
     this->fMaxBinPhi = max;
   };
-  void SetEtaBinning(Int_t const nbins, Float_t min, Float_t max) {
+  void SetEtaBinning(Int_t const nbins, const Float_t min, const Float_t max) {
     this->fNbinsEta = nbins;
     this->fMinBinEta = min;
     this->fMaxBinEta = max;
   };
 
-  void SetMulBinning(Int_t const nbins, Float_t min, Float_t max) {
+  void SetMulBinning(Int_t const nbins, const Float_t min, const Float_t max) {
     this->fNbinsMul = nbins;
     this->fMinBinMul = min;
     this->fMaxBinMul = max;
   };
 
-  void SetAveragePhiBinning(Int_t const nbins, Float_t min, Float_t max) {
+  void SetAveragePhiBinning(Int_t const nbins, const Float_t min,
+                            const Float_t max) {
     this->fNbinsAveragePhi = nbins;
     this->fMinBinAveragePhi = min;
     this->fMaxBinAveragePhi = max;
   };
+
+  // 4.) GetPointers Method in case we need to manually trigger Terminate()
+  void GetPointers(TList *list);
+  void GetPointersForControlHistograms();
+  void GetPointersForOutputHistograms();
 
 private:
   AliAnalysisTaskForStudents(const AliAnalysisTaskForStudents &aatmpf);
@@ -121,7 +127,7 @@ private:
   Float_t fMaxBinAveragePhi; // max bin
 
   // Increase this counter in each new version:
-  ClassDef(AliAnalysisTaskForStudents, 1);
+  ClassDef(AliAnalysisTaskForStudents, 2);
 };
 
 //================================================================================================================

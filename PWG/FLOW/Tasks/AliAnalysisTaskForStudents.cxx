@@ -2,7 +2,7 @@
  * File              : AliAnalysisTaskForStudents.cxx
  * Author            : Anton Riedel <anton.riedel@tum.de>
  * Date              : 07.05.2021
- * Last Modified Date: 08.05.2021
+ * Last Modified Date: 14.05.2021
  * Last Modified By  : Anton Riedel <anton.riedel@tum.de>
  */
 /*************************************************************************
@@ -189,9 +189,9 @@ void AliAnalysisTaskForStudents::UserExec(Option_t *) {
     if ((0.2 < pt) && (pt < 5.0)) // example cuts
     {
       // fill some control histograms:
-      fPtHist->Fill(pt); // filling pt distribution
-      fPhiHist->Fill(phi);
-      fEtaHist->Fill(eta);
+      fPtHist->Fill(pt);   // filling pt distribution
+      fPhiHist->Fill(phi); // filling phi distriubtion
+      fEtaHist->Fill(eta); // filling eta distribution
 
       // do some analysis only with the particles which passed the cuts
       // ... your analysis code ...
@@ -315,3 +315,80 @@ void AliAnalysisTaskForStudents::BookFinalResultsHistograms() {
 } // void AliAnalysisTaskForStudents::BookFinalResultsHistograms()
 
 //=======================================================================================================================
+//
+void AliAnalysisTaskForStudents::GetPointers(TList *histList) {
+
+  TString sMethodName =
+      "void AliAnalysisTaskForStudents::GetPointers(TList *histList)";
+
+  // a) Get pointer for base list fHistList and profile holding internal flags;
+  fHistList = histList;
+  if (!fHistList) {
+    Fatal(sMethodName.Data(), "fHistList is not around today...");
+  }
+
+  this->GetPointersForControlHistograms();
+  this->GetPointersForOutputHistograms();
+}
+
+void AliAnalysisTaskForStudents::GetPointersForControlHistograms() {
+  // Get pointers for Control Histograms.
+
+  TString sMethodName =
+      "void AliAnalysisTaskForStudents::GetPointersForControlHistograms()";
+
+  // a) Get pointer for fControlHistograms:
+  fControlHistogramsList =
+      dynamic_cast<TList *>(fHistList->FindObject("ControlHistograms"));
+  if (!fControlHistogramsList) {
+    Fatal(sMethodName.Data(), "fControlHistogramsList");
+  }
+
+  /* b) initalize all control histograms */
+  fPtHist = dynamic_cast<TH1F *>(fControlHistogramsList->FindObject("fPtHist"));
+  if (!fPtHist) {
+    Fatal(sMethodName.Data(), "fPtHist");
+  }
+  fEtaHist =
+      dynamic_cast<TH1F *>(fControlHistogramsList->FindObject("fEtaHist"));
+  if (!fEtaHist) {
+    Fatal(sMethodName.Data(), "fEtaHist");
+  }
+  fPhiHist =
+      dynamic_cast<TH1F *>(fControlHistogramsList->FindObject("fPhiHist"));
+  if (!fPhiHist) {
+    Fatal(sMethodName.Data(), "fPhiHist");
+  }
+  fMulHist =
+      dynamic_cast<TH1F *>(fControlHistogramsList->FindObject("fMulHist"));
+  if (!fMulHist) {
+    Fatal(sMethodName.Data(), "fMulHist");
+  }
+  // c) Set again all flags:
+  /* fFillBuffers = (Bool_t)fBuffersFlagsPro->GetBinContent(1); */
+  /* fMaxBuffer = fBuffersFlagsPro->GetBinContent(2); */
+}
+
+void AliAnalysisTaskForStudents::GetPointersForOutputHistograms() {
+  // Get pointers for Output Histograms.
+
+  TString sMethodName =
+      "void AliAnalysisTaskForStudents::GetPointersForOutputHistograms()";
+
+  // a) Get pointer for fFinalResultsList:
+  fFinalResultsList =
+      dynamic_cast<TList *>(fHistList->FindObject("FinalResult"));
+  if (!fControlHistogramsList) {
+    Fatal(sMethodName.Data(), "fFinalResultsList");
+  }
+
+  /* b) get pointer for output histograms */
+  fAveragePhiHist =
+      dynamic_cast<TH1F *>(fFinalResultsList->FindObject("fAveragePhiHist"));
+  if (!fAveragePhiHist) {
+    Fatal(sMethodName.Data(), "fAveragePhiHist");
+  }
+  // c) Set again all flags:
+  /* fFillBuffers = (Bool_t)fBuffersFlagsPro->GetBinContent(1); */
+  /* fMaxBuffer = fBuffersFlagsPro->GetBinContent(2); */
+}
