@@ -86,6 +86,20 @@ public:
     this->fMaxBinAveragePhi = max;
   };
 
+  /* set centrality binning */
+  void SetCentralityBinning(Int_t const nbins, Float_t min, Float_t max) {
+    this->fNbinsCentrality = nbins;
+    this->fMinCentrality = min;
+    this->fMaxCentrality = max;
+  };
+
+  void SetPtCuts(Float_t ptMin, Float_t ptMax) {
+    this->fptMin = ptMin;
+    this->fptMax = ptMax;
+  }
+
+  void SetzDisMax(Float_t zDisMax) { this->fzDisMax = zDisMax; }
+
   // 4.) GetPointers Method in case we need to manually trigger Terminate()
   void GetPointers(TList *list);
   void GetPointersForControlHistograms();
@@ -102,24 +116,44 @@ private:
 
   // 1.) Control histograms:
   TList *fControlHistogramsList; // list to hold all control histograms
-  TH1F *fPtHist;                 // atrack->Pt()
+  TH1F *fPtHist_beforeCut;       // atrack->Pt(), before cutting
+  TH1F *fPtHist_afterCut;        // atrack->Pt(), after cutting
   Int_t fNbinsPt;                // number of bins
   Float_t fMinBinPt;             // min bin
   Float_t fMaxBinPt;             // max bin
-  TH1F *fPhiHist;                // atrack->Phi()
+  TH1F *fPhiHist_beforeCut;      // atrack->Phi(), before cutting
+  TH1F *fPhiHist_afterCut;       // atrack->Phi(), after cutting
   Int_t fNbinsPhi;               // number of bins
   Float_t fMinBinPhi;            // min bin
   Float_t fMaxBinPhi;            // max bin
-  TH1F *fEtaHist;                // atrack->Eta()
+  TH1F *fEtaHist_beforeCut;      // atrack->Eta(), before cutting
+  TH1F *fEtaHist_afterCut;       // atrack->Eta(), after cutting
   Int_t fNbinsEta;               // number of bins
   Float_t fMinBinEta;            // min bin
   Float_t fMaxBinEta;            // max bin
-  TH1F *fMulHist;                // AliAODEvent->GetMultiplicity()
-  Int_t fNbinsMul;               // number of bins
-  Float_t fMinBinMul;            // min bin
-  Float_t fMaxBinMul;            // max bin
+  TH1F *fMulHist_beforeCut; // AliAODEvent->GetMultiplicity(), before cutting
+  TH1F *fMulHist_afterCut;  // AliAODEvent->GetMultiplicity(), after cutting
+  Int_t fNbinsMul;          // number of bins
+  Float_t fMinBinMul;       // min bin
+  Float_t fMaxBinMul;       // max bin
 
-  // 2.) Final results:
+  /* 2. centrality selection */
+  TH1F *fCentralityHist_beforeCut; // control histograms for centralities,
+                                   // before cutting
+  TH1F *fCentralityHist_afterCut;  // control histograms for centralities, after
+                                   // cutting
+  Int_t fNbinsCentrality;          // number of bins
+  Float_t fMinCentrality;          // min centrality
+  Float_t fMaxCentrality;          // max centrality
+
+  /* 3. pt selection */
+  Float_t fptMin; // minimal pt for cutting
+  Float_t fptMax; // maximal pt for cutting
+
+  /* 4. maximal displacement of primary vertex in z direction */
+  Float_t fzDisMax;
+
+  // 3.) Final results:
   TList *fFinalResultsList;  // list to hold all histograms with final results
   TH1F *fAveragePhiHist;     // Mean of Phi
   Int_t fNbinsAveragePhi;    // number of bins
