@@ -86,7 +86,10 @@ public:
     this->fMaxBinAveragePhi = max;
   };
 
-  /* set centrality binning */
+  void SetCentralitySelCriterion(TString SelCriterion) {
+    this->fCentralitySelCriterion = SelCriterion;
+  }
+
   void SetCentralityBinning(Int_t const nbins, Float_t min, Float_t max) {
     this->fNbinsCentrality = nbins;
     this->fMinCentrality = min;
@@ -138,6 +141,7 @@ private:
   Float_t fMaxBinMul;       // max bin
 
   /* 2. centrality selection */
+  TString fCentralitySelCriterion; // selection criterion for centrality
   TH1F *fCentralityHist_beforeCut; // control histograms for centralities,
                                    // before cutting
   TH1F *fCentralityHist_afterCut;  // control histograms for centralities, after

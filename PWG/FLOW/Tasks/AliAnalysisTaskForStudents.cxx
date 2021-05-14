@@ -175,8 +175,10 @@ void AliAnalysisTaskForStudents::UserExec(Option_t *) {
   if (!ams) {
     return;
   }
-  if (ams->GetMultiplicityPercentile("V0M") >= fMinCentrality &&
-      ams->GetMultiplicityPercentile("V0M") < fMaxCentrality) {
+  if (ams->GetMultiplicityPercentile(fCentralitySelCriterion) >=
+          fMinCentrality &&
+      ams->GetMultiplicityPercentile(fCentralitySelCriterion) <
+          fMaxCentrality) {
     fCentralityHist_beforeCut->Fill(ams->GetMultiplicityPercentile("V0M"));
   } else {
     return; // this event do not belong to the centrality class specified for
