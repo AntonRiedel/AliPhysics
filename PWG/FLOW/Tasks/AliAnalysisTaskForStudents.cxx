@@ -2,7 +2,7 @@
  * File              : AliAnalysisTaskForStudents.cxx
  * Author            : Anton Riedel <anton.riedel@tum.de>
  * Date              : 07.05.2021
- * Last Modified Date: 14.05.2021
+ * Last Modified Date: 17.05.2021
  * Last Modified By  : Anton Riedel <anton.riedel@tum.de>
  */
 /*************************************************************************
@@ -55,6 +55,8 @@ ClassImp(AliAnalysisTaskForStudents)
       fNbinsCentrality(0), fMinCentrality(0), fMaxCentrality(0),
       /* pt cuts */
       fptMin(0), fptMax(0),
+      /* filterbit */
+      fFilterbit(0),
       // Final results:
       fFinalResultsList(NULL), fAveragePhiHist(NULL), fNbinsAveragePhi(1000),
       fMinBinAveragePhi(0.), fMaxBinAveragePhi(10.) {
@@ -108,6 +110,8 @@ AliAnalysisTaskForStudents::AliAnalysisTaskForStudents()
       fNbinsCentrality(0), fMinCentrality(0), fMaxCentrality(0),
       /* pt cuts */
       fptMin(0), fptMax(0),
+      /* filterbit */
+      fFilterbit(0),
       // Final results:
       fFinalResultsList(NULL), fAveragePhiHist(NULL), fNbinsAveragePhi(1000),
       fMinBinAveragePhi(0.), fMaxBinAveragePhi(10.) {
@@ -218,7 +222,7 @@ void AliAnalysisTaskForStudents::UserExec(Option_t *) {
     /* for further cutting */
     nTracks_beforeCut++;
     /* apply cuts and set filterbit */
-    if ((!aTrack->TestFilterBit(128)) && (fptMin < pt) &&
+    if ((!aTrack->TestFilterBit(fFilterbit)) && (fptMin < pt) &&
         (pt < fptMax)) { // example cuts
       // filter bit 128 denotes TPC-only tracks, use only them for the
       // analysis

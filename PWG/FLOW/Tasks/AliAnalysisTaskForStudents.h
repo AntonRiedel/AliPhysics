@@ -2,7 +2,7 @@
  * File              : AliAnalysisTaskForStudents.h
  * Author            : Anton Riedel <anton.riedel@tum.de>
  * Date              : 07.05.2021
- * Last Modified Date: 14.05.2021
+ * Last Modified Date: 17.05.2021
  * Last Modified By  : Anton Riedel <anton.riedel@tum.de>
  */
 /*
@@ -103,6 +103,8 @@ public:
 
   void SetzDisMax(Float_t zDisMax) { this->fzDisMax = zDisMax; }
 
+  void SetFilterbit(Int_t Filterbit) { this->fFilterbit = Filterbit; }
+
   // 4.) GetPointers Method in case we need to manually trigger Terminate()
   void GetPointers(TList *list);
   void GetPointersForControlHistograms();
@@ -156,6 +158,9 @@ private:
 
   /* 4. maximal displacement of primary vertex in z direction */
   Float_t fzDisMax;
+
+  /* 5. filterbit */
+  Int_t fFilterbit;
 
   // 3.) Final results:
   TList *fFinalResultsList;  // list to hold all histograms with final results
