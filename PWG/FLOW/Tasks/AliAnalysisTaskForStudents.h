@@ -2,7 +2,7 @@
  * File              : AliAnalysisTaskForStudents.h
  * Author            : Anton Riedel <anton.riedel@tum.de>
  * Date              : 07.05.2021
- * Last Modified Date: 17.05.2021
+ * Last Modified Date: 18.05.2021
  * Last Modified By  : Anton Riedel <anton.riedel@tum.de>
  */
 /*
@@ -141,28 +141,22 @@ private:
   Int_t fNbinsMul;          // number of bins
   Float_t fMinBinMul;       // min bin
   Float_t fMaxBinMul;       // max bin
-
-  /* 2. centrality selection */
-  TString fCentralitySelCriterion; // selection criterion for centrality
   TH1F *fCentralityHist_beforeCut; // control histograms for centralities,
                                    // before cutting
   TH1F *fCentralityHist_afterCut;  // control histograms for centralities, after
                                    // cutting
   Int_t fNbinsCentrality;          // number of bins
+
+  /* 2. selection criteria */
+  TString fCentralitySelCriterion; // selection criterion for centrality
   Float_t fMinCentrality;          // min centrality
   Float_t fMaxCentrality;          // max centrality
+  Float_t fptMin;                  // minimal pt for cutting
+  Float_t fptMax;                  // maximal pt for cutting
+  Float_t fzDisMax; // maximal displacement of primary vertex in z direction
+  Int_t fFilterbit; // filterbit
 
-  /* 3. pt selection */
-  Float_t fptMin; // minimal pt for cutting
-  Float_t fptMax; // maximal pt for cutting
-
-  /* 4. maximal displacement of primary vertex in z direction */
-  Float_t fzDisMax;
-
-  /* 5. filterbit */
-  Int_t fFilterbit;
-
-  // 3.) Final results:
+  // 6.) Final results:
   TList *fFinalResultsList;  // list to hold all histograms with final results
   TH1F *fAveragePhiHist;     // Mean of Phi
   Int_t fNbinsAveragePhi;    // number of bins

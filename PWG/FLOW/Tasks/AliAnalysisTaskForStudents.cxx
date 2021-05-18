@@ -49,14 +49,11 @@ ClassImp(AliAnalysisTaskForStudents)
       fMinBinPhi(0.), fMaxBinPhi(10.), fEtaHist_beforeCut(NULL),
       fEtaHist_afterCut(NULL), fNbinsEta(1000), fMinBinEta(0.), fMaxBinEta(10.),
       fMulHist_beforeCut(NULL), fMulHist_afterCut(NULL), fNbinsMul(1000),
-      fMinBinMul(0.), fMaxBinMul(10.),
-      /* centrality selection */
-      fCentralityHist_beforeCut(NULL), fCentralityHist_afterCut(NULL),
-      fNbinsCentrality(0), fMinCentrality(0), fMaxCentrality(0),
-      /* pt cuts */
-      fptMin(0), fptMax(0),
-      /* filterbit */
-      fFilterbit(0),
+      fMinBinMul(0.), fMaxBinMul(10.), fCentralityHist_beforeCut(NULL),
+      fCentralityHist_afterCut(NULL), fNbinsCentrality(0),
+      // selection criteria
+      fCentralitySelCriterion(""), fMinCentrality(0), fMaxCentrality(0),
+      fptMin(0), fptMax(0), fzDisMax(0), fFilterbit(0),
       // Final results:
       fFinalResultsList(NULL), fAveragePhiHist(NULL), fNbinsAveragePhi(1000),
       fMinBinAveragePhi(0.), fMaxBinAveragePhi(10.) {
@@ -104,14 +101,11 @@ AliAnalysisTaskForStudents::AliAnalysisTaskForStudents()
       fMinBinPhi(0.), fMaxBinPhi(10.), fEtaHist_beforeCut(NULL),
       fEtaHist_afterCut(NULL), fNbinsEta(1000), fMinBinEta(0.), fMaxBinEta(10.),
       fMulHist_beforeCut(NULL), fMulHist_afterCut(NULL), fNbinsMul(1000),
-      fMinBinMul(0.), fMaxBinMul(10.),
-      /* centrality selection */
-      fCentralityHist_beforeCut(NULL), fCentralityHist_afterCut(NULL),
-      fNbinsCentrality(0), fMinCentrality(0), fMaxCentrality(0),
-      /* pt cuts */
-      fptMin(0), fptMax(0),
-      /* filterbit */
-      fFilterbit(0),
+      fMinBinMul(0.), fMaxBinMul(10.), fCentralityHist_beforeCut(NULL),
+      fCentralityHist_afterCut(NULL), fNbinsCentrality(0),
+      // selection criteria
+      fCentralitySelCriterion(""), fMinCentrality(0), fMaxCentrality(0),
+      fptMin(0), fptMax(0), fzDisMax(0), fFilterbit(0),
       // Final results:
       fFinalResultsList(NULL), fAveragePhiHist(NULL), fNbinsAveragePhi(1000),
       fMinBinAveragePhi(0.), fMaxBinAveragePhi(10.) {
@@ -202,7 +196,7 @@ void AliAnalysisTaskForStudents::UserExec(Option_t *) {
   }
 
   /* fill control histogram for multiplicity percentile */
-  fCentralityHist_afterCut->Fill(ams->GetMultiplicityPercentile("V0M"));
+  fCentralityHist_afterCut->Fill(MultiplicityPercentile);
 
   // b) Start analysis over AODs:
   /* number of all tracks in current event */
