@@ -2,7 +2,7 @@
  * File              : AliAnalysisTaskForStudents.cxx
  * Author            : Anton Riedel <anton.riedel@tum.de>
  * Date              : 07.05.2021
- * Last Modified Date: 17.05.2021
+ * Last Modified Date: 18.05.2021
  * Last Modified By  : Anton Riedel <anton.riedel@tum.de>
  */
 /*************************************************************************
@@ -174,42 +174,53 @@ void AliAnalysisTaskForStudents::UserExec(Option_t *) {
     return;
   }
 
+  /* get object for determining centrality */
   AliMultSelection *ams =
       (AliMultSelection *)aAOD->FindListObject("MultSelection");
   if (!ams) {
     return;
   }
-  if (ams->GetMultiplicityPercentile(fCentralitySelCriterion) >=
-          fMinCentrality &&
-      ams->GetMultiplicityPercentile(fCentralitySelCriterion) <
-          fMaxCentrality) {
-    fCentralityHist_beforeCut->Fill(ams->GetMultiplicityPercentile("V0M"));
+  /* get centrality percentile */
+  Float_t MultiplicityPercentile =
+      ams->GetMultiplicityPercentile(fCentralitySelCriterion);
+
+  /* cut event if it is not within the centrality percentile */
+  if (MultiplicityPercentile >= fMinCentrality &&
+      MultiplicityPercentile < fMaxCentrality) {
+    fCentralityHist_beforeCut->Fill(MultiplicityPercentile);
   } else {
-    return; // this event do not belong to the centrality class specified for
-            // this particular analysis
+    return;
   }
+
+  /* cut event if the primary vertex is too displaced along the z direction
+   * (->beam direction) */
+  /* if the displacement is too large, the detectors will miss many produced
+   * particles */
+  /* this cuts essential the multiplicity */
   if (aAOD->GetPrimaryVertex()->GetZ() > fzDisMax) {
     return;
   }
-  /* stop analysis if the primary vertex is not in a central position */
+
+  /* fill control histogram for multiplicity percentile */
   fCentralityHist_afterCut->Fill(ams->GetMultiplicityPercentile("V0M"));
 
   // b) Start analysis over AODs:
-  Int_t nTracks =
-      aAOD->GetNumberOfTracks(); // number of all tracks in current event
+  /* number of all tracks in current event */
+  /* use this as Multiplicity */
+  Int_t nTracks = aAOD->GetNumberOfTracks();
 
   /* count number of tracks for computing multiplicity */
   Int_t nTracks_beforeCut = 0;
   Int_t nTracks_afterCut = 0;
 
-  for (Int_t iTrack = 0; iTrack < nTracks;
-       iTrack++) // starting a loop over all tracks
-  {
-    AliAODTrack *aTrack = dynamic_cast<AliAODTrack *>(
-        aAOD->GetTrack(iTrack)); // getting a pointer to a track
+  /* loop over all tracks in the event */
+  for (Int_t iTrack = 0; iTrack < nTracks; iTrack++) {
+    /* getting a pointer to a track */
+    AliAODTrack *aTrack = dynamic_cast<AliAODTrack *>(aAOD->GetTrack(iTrack));
+    /* protect against invalid pointers */
     if (!aTrack) {
       continue;
-    } // protection against NULL pointers
+    }
 
     /* fill control histograms before cutting */
     Double_t pt = aTrack->Pt();    // Pt
@@ -218,27 +229,29 @@ void AliAnalysisTaskForStudents::UserExec(Option_t *) {
     fPtHist_beforeCut->Fill(pt);   // filling pt distribution
     fPhiHist_beforeCut->Fill(phi); // filling phi distriubtion
     fEtaHist_beforeCut->Fill(eta); // filling eta distribution
-
-    /* for further cutting */
     nTracks_beforeCut++;
-    /* apply cuts and set filterbit */
+
+    /* apply cuts, i.e. */
+    /* filterbit */
+    /* momentun */
+
+    /* filter bit 128 denotes TPC-only tracks, use only them for the */
+    /* analysis */
+    /* for hybrid tracks use filterbit 782 */
+    /* for more information about filterbits see the online week */
+    /* the filterbits can change from run to run */
+    /* fill control histograms */
     if ((!aTrack->TestFilterBit(fFilterbit)) && (fptMin < pt) &&
-        (pt < fptMax)) { // example cuts
-      // filter bit 128 denotes TPC-only tracks, use only them for the
-      // analysis
-      // for hybrid tracks use filterbit 782
-      // for more information about filterbits see the online week
-      // the filterbits can change from run to run
-      // fill control histograms
+        (pt < fptMax)) {
+      /* fill control histograms after cutting */
       fPtHist_afterCut->Fill(pt);   // filling pt distribution
       fPhiHist_afterCut->Fill(phi); // filling phi distriubtion
       fEtaHist_afterCut->Fill(eta); // filling eta distribution
       nTracks_afterCut++;
     }
+  }
 
-  } // for(Int_t iTrack=0;iTrack<nTracks;iTrack++) // starting a loop over all
-    // tracks
-
+  /* fill control histogram for Multiplicity after counting all tracks*/
   fMulHist_beforeCut->Fill(nTracks_beforeCut);
   fMulHist_afterCut->Fill(nTracks_afterCut);
 
@@ -260,9 +273,9 @@ void AliAnalysisTaskForStudents::UserExec(Option_t *) {
 void AliAnalysisTaskForStudents::Terminate(Option_t *) {
   // Accessing the merged output list.
 
-  fHistList = (TList *)GetOutputData(1);
+  /* fHistList = (TList *)GetOutputData(1); */
   if (!fHistList) {
-    exit(1);
+    cout << "fHistList not around?" << endl;
   }
 
   // Do some calculation in offline mode here:
@@ -493,7 +506,7 @@ void AliAnalysisTaskForStudents::GetPointersForOutputHistograms() {
 
   // a) Get pointer for fFinalResultsList:
   fFinalResultsList =
-      dynamic_cast<TList *>(fHistList->FindObject("FinalResult"));
+      dynamic_cast<TList *>(fHistList->FindObject("FinalResults"));
   if (!fControlHistogramsList) {
     Fatal(sMethodName.Data(), "fFinalResultsList");
   }
