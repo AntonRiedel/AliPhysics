@@ -2,9 +2,10 @@
  * File              : AliAnalysisTaskForStudents.h
  * Author            : Anton Riedel <anton.riedel@tum.de>
  * Date              : 07.05.2021
- * Last Modified Date: 20.05.2021
+ * Last Modified Date: 25.05.2021
  * Last Modified By  : Anton Riedel <anton.riedel@tum.de>
  */
+
 /*
  * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved.
  * See cxx source for full Copyright notice
@@ -23,8 +24,6 @@
 #include "AliAnalysisTaskSE.h"
 #include "AliVEvent.h"
 #include "TH1F.h"
-
-//================================================================================================================
 
 class AliAnalysisTaskForStudents : public AliAnalysisTaskSE {
 public:
@@ -53,7 +52,7 @@ public:
   virtual void GetPointersForControlHistograms();
   virtual void GetPointersForOutputHistograms();
 
-  /* Setters and getters: */
+  /* Setters and getters */
   void SetControlHistogramsList(TList *const chl) {
     this->fControlHistogramsList = chl;
   };
@@ -118,19 +117,19 @@ public:
   }
 
   void SetPrimaryVertexXCuts(Float_t PrimaryVertexXMin,
-                            Float_t PrimaryVertexXMax) {
+                             Float_t PrimaryVertexXMax) {
     this->fPrimayVertexXMin = PrimaryVertexXMin;
     this->fPrimayVertexXMax = PrimaryVertexXMax;
   }
 
   void SetPrimaryVertexYCuts(Float_t PrimaryVertexYMin,
-                            Float_t PrimaryVertexYMax) {
+                             Float_t PrimaryVertexYMax) {
     this->fPrimayVertexYMin = PrimaryVertexYMin;
     this->fPrimayVertexYMax = PrimaryVertexYMax;
   }
 
   void SetPrimaryVertexZCuts(Float_t PrimaryVertexZMin,
-                            Float_t PrimaryVertexZMax) {
+                             Float_t PrimaryVertexZMax) {
     this->fPrimayVertexZMin = PrimaryVertexZMin;
     this->fPrimayVertexZMax = PrimaryVertexZMax;
   }
@@ -216,7 +215,5 @@ private:
   // Increase this counter in each new version:
   ClassDef(AliAnalysisTaskForStudents, 2);
 };
-
-//================================================================================================================
 
 #endif

@@ -2,9 +2,10 @@
  * File              : AliAnalysisTaskForStudents.cxx
  * Author            : Anton Riedel <anton.riedel@tum.de>
  * Date              : 07.05.2021
- * Last Modified Date: 20.05.2021
+ * Last Modified Date: 25.05.2021
  * Last Modified By  : Anton Riedel <anton.riedel@tum.de>
  */
+
 /*************************************************************************
  * Copyright(c) 1998-2008, ALICE Experiment at CERN, All rights reserved. *
  *                                                                        *
@@ -33,12 +34,7 @@
 #include "TColor.h"
 #include "TFile.h"
 
-using std::cout;
-using std::endl;
-
 ClassImp(AliAnalysisTaskForStudents)
-
-    //================================================================================================================
 
     AliAnalysisTaskForStudents::AliAnalysisTaskForStudents(
         const char *name, Bool_t useParticleWeights)
@@ -104,8 +100,7 @@ ClassImp(AliAnalysisTaskForStudents)
 } // AliAnalysisTaskForStudents::AliAnalysisTaskForStudents(const char *name,
   // Bool_t useParticleWeights):
 
-//================================================================================================================
-
+/* Dummy constructor */
 AliAnalysisTaskForStudents::AliAnalysisTaskForStudents()
     : AliAnalysisTaskSE(),
       /* Control histograms */
@@ -128,31 +123,26 @@ AliAnalysisTaskForStudents::AliAnalysisTaskForStudents()
       /* control histogram for centrality */
       fCentralityHist_beforeCut(NULL), fCentralityHist_afterCut(NULL),
       fNbinsCentrality(1000), fMinCentrality(0), fMaxCentrality(10),
-      // cuts
+      /* cuts */
       fCentralitySelCriterion(""), fPtMin(0), fPtMax(10), fPhiMin(0),
       fPhiMax(10), fEtaMin(0), fEtaMax(10), fPrimayVertexXMin(0),
       fPrimayVertexXMax(10), fPrimayVertexYMin(0), fPrimayVertexYMax(10),
       fPrimayVertexZMin(0), fPrimayVertexZMax(10), fFilterbit(0),
-      // Final results:
+      /* Final results: */
       fFinalResultsList(NULL), fAveragePhiHist(NULL), fNbinsAveragePhi(1000),
       fMinBinAveragePhi(0.), fMaxBinAveragePhi(10.) {
-  // Dummy constructor.
 
   AliDebug(2, "AliAnalysisTaskForStudents::AliAnalysisTaskForStudents()");
 
 } // AliAnalysisTaskForStudents::AliAnalysisTaskForStudents():
 
-//================================================================================================================
-
+/* Destructor */
 AliAnalysisTaskForStudents::~AliAnalysisTaskForStudents() {
-  // Destructor.
 
   if (fHistList)
     delete fHistList;
 
 } // AliAnalysisTaskForStudents::~AliAnalysisTaskForStudents()
-
-//================================================================================================================
 
 void AliAnalysisTaskForStudents::UserCreateOutputObjects() {
   // Called at every worker node to initialize.
@@ -180,36 +170,38 @@ void AliAnalysisTaskForStudents::UserCreateOutputObjects() {
 
 } // void AliAnalysisTaskForStudents::UserCreateOutputObjects()
 
-//================================================================================================================
-
+/* Main loop (called for each event) */
 void AliAnalysisTaskForStudents::UserExec(Option_t *) {
-  // Main loop (called for each event).
-  // a) Get pointer to AOD event:
-  // b) Start analysis over AODs;
-  // c) Reset event-by-event objects;
-  // d) PostData.
+  /* general strategy */
+  /* 1. Get pointer to AOD event */
+  /* 2. Start analysis over AODs */
+  /* 3. Reset event-by-event objects */
+  /* 4. PostData */
 
-  // a) Get pointer to AOD event:
+  /* 1. Get pointer to AOD event */
   AliAODEvent *aAOD = dynamic_cast<AliAODEvent *>(InputEvent()); // from TaskSE
   if (!aAOD) {
     return;
   }
 
+  /* fill control histgrogram before event cut */
   fCentralityHist_beforeCut->Fill(
-      dynamic_cast<AliMultSelection*>(aAOD->FindListObject("MultSelection"))
+      dynamic_cast<AliMultSelection *>(aAOD->FindListObject("MultSelection"))
           ->GetMultiplicityPercentile(fCentralitySelCriterion));
 
+  /* cut event */
   if (!SurviveEventCut(aAOD)) {
     return;
   }
 
+  /* fill control histogram after event cut */
   fCentralityHist_afterCut->Fill(
-      dynamic_cast<AliMultSelection*>(aAOD->FindListObject("MultSelection"))
+      dynamic_cast<AliMultSelection *>(aAOD->FindListObject("MultSelection"))
           ->GetMultiplicityPercentile(fCentralitySelCriterion));
 
-  /* Start analysis over AODs: */
+  /* 2. Start analysis over AODs: */
+
   /* number of all tracks in current event */
-  /* use this as Multiplicity */
   Int_t nTracks = aAOD->GetNumberOfTracks();
 
   /* count number of tracks for computing multiplicity */
@@ -218,15 +210,17 @@ void AliAnalysisTaskForStudents::UserExec(Option_t *) {
 
   /* loop over all tracks in the event */
   for (Int_t iTrack = 0; iTrack < nTracks; iTrack++) {
+
     /* getting a pointer to a track */
     AliAODTrack *aTrack = dynamic_cast<AliAODTrack *>(aAOD->GetTrack(iTrack));
+
     /* protect against invalid pointers */
     if (!aTrack) {
       continue;
     }
 
     /* get kinematic variables of the track */
-    Double_t pt = aTrack->Pt();   // Pt
+    Double_t pt = aTrack->Pt();   // transverse momentum
     Double_t phi = aTrack->Phi(); // azimuthal angle
     Double_t eta = aTrack->Eta(); // pseudorapidity
 
@@ -236,13 +230,16 @@ void AliAnalysisTaskForStudents::UserExec(Option_t *) {
     fEtaHist_beforeCut->Fill(eta); // filling eta distribution
     nTracks_beforeCut++;
 
+    /* cut track */
     if (!SurviveTrackCut(aTrack)) {
-      /* fill control histograms after cutting */
-      fPtHist_afterCut->Fill(pt);   // filling pt distribution
-      fPhiHist_afterCut->Fill(phi); // filling phi distriubtion
-      fEtaHist_afterCut->Fill(eta); // filling eta distribution
-      nTracks_afterCut++;
+      continue;
     }
+
+    /* fill control histograms after cutting */
+    fPtHist_afterCut->Fill(pt);   // filling pt distribution
+    fPhiHist_afterCut->Fill(phi); // filling phi distriubtion
+    fEtaHist_afterCut->Fill(eta); // filling eta distribution
+    nTracks_afterCut++;
   }
 
   /* fill control histogram for Multiplicity after counting all tracks */
@@ -262,14 +259,12 @@ void AliAnalysisTaskForStudents::UserExec(Option_t *) {
 
 } // void AliAnalysisTaskForStudents::UserExec(Option_t *)
 
-//================================================================================================================
-
+/* Accessing the merged output list */
 void AliAnalysisTaskForStudents::Terminate(Option_t *) {
-  // Accessing the merged output list.
 
   /* fHistList = (TList *)GetOutputData(1); */
   if (!fHistList) {
-    cout << "fHistList not around?" << endl;
+    std::cout << "fHistList not around?" << std::endl;
   }
 
   // Do some calculation in offline mode here:
@@ -280,8 +275,6 @@ void AliAnalysisTaskForStudents::Terminate(Option_t *) {
 
 } // end of void AliAnalysisTaskForStudents::Terminate(Option_t *)
 
-//================================================================================================================
-
 void AliAnalysisTaskForStudents::InitializeArrays() {
   // Initialize all data members which are arrays in this method.
 
@@ -289,13 +282,11 @@ void AliAnalysisTaskForStudents::InitializeArrays() {
 
 } // void AliAnalysisTaskForStudents::InitializeArrays()
 
-//=======================================================================================================================
-
 void AliAnalysisTaskForStudents::BookAndNestAllLists() {
-  // Book and nest all lists nested in the base list fHistList.
+  /* Book and nest all lists nested in the base list fHistList. */
 
-  // a) Book and nest lists for control histograms;
-  // b) Book and nest lists for final results.
+  /* 1. Book and nest lists for control histograms; */
+  /* 2. Book and nest lists for final results. */
 
   TString sMethodName =
       "void AliAnalysisTaskForStudents::BookAndNestAllLists()";
@@ -303,13 +294,13 @@ void AliAnalysisTaskForStudents::BookAndNestAllLists() {
     Fatal(sMethodName.Data(), "fHistList is NULL");
   }
 
-  // a) Book and nest lists for control histograms:
+  /* 1. Book and nest lists for control histograms: */
   fControlHistogramsList = new TList();
   fControlHistogramsList->SetName("ControlHistograms");
   fControlHistogramsList->SetOwner(kTRUE);
   fHistList->Add(fControlHistogramsList);
 
-  // b) Book and nest lists for final results:
+  /* 2. Book and nest lists for final results: */
   fFinalResultsList = new TList();
   fFinalResultsList->SetName("FinalResults");
   fFinalResultsList->SetOwner(kTRUE);
@@ -317,13 +308,12 @@ void AliAnalysisTaskForStudents::BookAndNestAllLists() {
 
 } // void AliAnalysisTaskForStudents::BookAndNestAllLists()
 
-//=======================================================================================================================
-
 void AliAnalysisTaskForStudents::BookControlHistograms() {
   /* Book all control histograms */
 
-  Color_t colorBeforeCut = kRed;
-  Color_t colorAfterCut = kGreen;
+  /* fill colors */
+  Color_t colorBeforeCut = kRed - 10;
+  Color_t colorAfterCut = kGreen - 10;
 
   /* Book histograms to hold pt spectra before and after cutting */
   fPtHist_beforeCut = new TH1F("fPtHist_beforeCut", "atrack->Pt(), before cut",
@@ -402,8 +392,9 @@ void AliAnalysisTaskForStudents::BookControlHistograms() {
 }
 
 void AliAnalysisTaskForStudents::BookFinalResultsHistograms() {
+
   /* Book all histograms to hold the final results. */
-  Color_t colorFinalResult = kBlue;
+  Color_t colorFinalResult = kBlue - 10;
   fAveragePhiHist =
       new TH1F("fAveragePhiHist", "Average #varphi", fNbinsAveragePhi,
                fMinBinAveragePhi, fMaxBinAveragePhi);
@@ -450,20 +441,20 @@ Bool_t AliAnalysisTaskForStudents::SurviveEventCut(AliVEvent *ave) {
     return kFALSE;
   }
 
-  // cut event if vertex is too displaced
-  if (PrimaryVertex->GetX() < fPrimayVertexXMin) {
+  // cut event if vertex is too out of center
+  if (PrimaryVertex->GetX() <= fPrimayVertexXMin) {
     return kFALSE;
   }
   if (PrimaryVertex->GetX() > fPrimayVertexXMax) {
     return kFALSE;
   }
-  if (PrimaryVertex->GetY() < fPrimayVertexYMin) {
+  if (PrimaryVertex->GetY() <= fPrimayVertexYMin) {
     return kFALSE;
   }
   if (PrimaryVertex->GetY() > fPrimayVertexYMax) {
     return kFALSE;
   }
-  if (PrimaryVertex->GetZ() < fPrimayVertexZMin) {
+  if (PrimaryVertex->GetZ() <= fPrimayVertexZMin) {
     return kFALSE;
   }
   if (PrimaryVertex->GetZ() > fPrimayVertexZMax) {
@@ -477,21 +468,21 @@ Bool_t AliAnalysisTaskForStudents::SurviveTrackCut(AliAODTrack *aTrack) {
   /* check if current track survives track cut */
 
   /* cut pt */
-  if (aTrack->Pt() < fPtMin) {
+  if (aTrack->Pt() <= fPtMin) {
     return kFALSE;
   }
   if (aTrack->Pt() > fPtMax) {
     return kFALSE;
   }
   /* cut phi */
-  if (aTrack->Phi() < fPhiMin) {
+  if (aTrack->Phi() <= fPhiMin) {
     return kFALSE;
   }
   if (aTrack->Eta() > fPhiMax) {
     return kFALSE;
   }
   /* cut eta */
-  if (aTrack->Eta() < fEtaMin) {
+  if (aTrack->Eta() <= fEtaMin) {
     return kFALSE;
   }
   if (aTrack->Eta() > fEtaMax) {
