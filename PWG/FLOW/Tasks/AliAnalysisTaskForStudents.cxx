@@ -2,7 +2,7 @@
  * File              : AliAnalysisTaskForStudents.cxx
  * Author            : Anton Riedel <anton.riedel@tum.de>
  * Date              : 07.05.2021
- * Last Modified Date: 25.05.2021
+ * Last Modified Date: 26.05.2021
  * Last Modified By  : Anton Riedel <anton.riedel@tum.de>
  */
 
@@ -33,40 +33,22 @@
 #include "Riostream.h"
 #include "TColor.h"
 #include "TFile.h"
+#include <ostream>
 
 ClassImp(AliAnalysisTaskForStudents)
 
     AliAnalysisTaskForStudents::AliAnalysisTaskForStudents(
         const char *name, Bool_t useParticleWeights)
     : AliAnalysisTaskSE(name),
-      /* Control histograms */
       /* Base list for all output objects*/
-      fHistList(NULL),
+      fHistList(nullptr),
       /* list holding all control histograms */
-      fControlHistogramsList(NULL),
-      /* control histogram for pt */
-      fPtHist_beforeCut(NULL), fPtHist_afterCut(NULL), fNbinsPt(1000),
-      fMinBinPt(0.), fMaxBinPt(10.),
-      /* control histogram for phi */
-      fPhiHist_beforeCut(NULL), fPhiHist_afterCut(NULL), fNbinsPhi(1000),
-      fMinBinPhi(0.), fMaxBinPhi(10.),
-      /* control histogram for eta */
-      fEtaHist_beforeCut(NULL), fEtaHist_afterCut(NULL), fNbinsEta(1000),
-      fMinBinEta(0.), fMaxBinEta(10.),
-      /* control histogram for multiplicity */
-      fMulHist_beforeCut(NULL), fMulHist_afterCut(NULL), fNbinsMul(1000),
-      fMinBinMul(0.), fMaxBinMul(10.),
-      /* control histogram for centrality */
-      fCentralityHist_beforeCut(NULL), fCentralityHist_afterCut(NULL),
-      fNbinsCentrality(1000), fMinCentrality(0), fMaxCentrality(10),
+      fControlHistogramsList(nullptr),
       // cuts
-      fCentralitySelCriterion(""), fPtMin(0), fPtMax(10), fPhiMin(0),
-      fPhiMax(10), fEtaMin(0), fEtaMax(10), fPrimayVertexXMin(0),
-      fPrimayVertexXMax(10), fPrimayVertexYMin(0), fPrimayVertexYMax(10),
-      fPrimayVertexZMin(0), fPrimayVertexZMax(10), fFilterbit(0),
+      fCentralitySelCriterion(""), fFilterbit(0),
       // Final results:
-      fFinalResultsList(NULL), fAveragePhiHist(NULL), fNbinsAveragePhi(1000),
-      fMinBinAveragePhi(0.), fMaxBinAveragePhi(10.) {
+      fFinalResultsList(nullptr), fAveragePhiHist(nullptr),
+      fNbinsAveragePhi(1000), fMinBinAveragePhi(0.), fMaxBinAveragePhi(10.) {
   // Constructor.
 
   AliDebug(2, "AliAnalysisTaskForStudents::AliAnalysisTaskForStudents(const "
@@ -103,34 +85,17 @@ ClassImp(AliAnalysisTaskForStudents)
 /* Dummy constructor */
 AliAnalysisTaskForStudents::AliAnalysisTaskForStudents()
     : AliAnalysisTaskSE(),
-      /* Control histograms */
       /* Base list for all output objects*/
-      fHistList(NULL),
+      fHistList(nullptr),
       /* list holding all control histograms */
-      fControlHistogramsList(NULL),
-      /* control histogram for pt */
-      fPtHist_beforeCut(NULL), fPtHist_afterCut(NULL), fNbinsPt(1000),
-      fMinBinPt(0.), fMaxBinPt(10.),
-      /* control histogram for phi */
-      fPhiHist_beforeCut(NULL), fPhiHist_afterCut(NULL), fNbinsPhi(1000),
-      fMinBinPhi(0.), fMaxBinPhi(10.),
-      /* control histogram for eta */
-      fEtaHist_beforeCut(NULL), fEtaHist_afterCut(NULL), fNbinsEta(1000),
-      fMinBinEta(0.), fMaxBinEta(10.),
-      /* control histogram for multiplicity */
-      fMulHist_beforeCut(NULL), fMulHist_afterCut(NULL), fNbinsMul(1000),
-      fMinBinMul(0.), fMaxBinMul(10.),
-      /* control histogram for centrality */
-      fCentralityHist_beforeCut(NULL), fCentralityHist_afterCut(NULL),
-      fNbinsCentrality(1000), fMinCentrality(0), fMaxCentrality(10),
-      /* cuts */
-      fCentralitySelCriterion(""), fPtMin(0), fPtMax(10), fPhiMin(0),
-      fPhiMax(10), fEtaMin(0), fEtaMax(10), fPrimayVertexXMin(0),
-      fPrimayVertexXMax(10), fPrimayVertexYMin(0), fPrimayVertexYMax(10),
-      fPrimayVertexZMin(0), fPrimayVertexZMax(10), fFilterbit(0),
-      /* Final results: */
-      fFinalResultsList(NULL), fAveragePhiHist(NULL), fNbinsAveragePhi(1000),
-      fMinBinAveragePhi(0.), fMaxBinAveragePhi(10.) {
+      fControlHistogramsList(nullptr),
+      // cuts
+      fCentralitySelCriterion(""), fFilterbit(0),
+      // Final results:
+      fFinalResultsList(nullptr), fAveragePhiHist(nullptr),
+      fNbinsAveragePhi(1000), fMinBinAveragePhi(0.), fMaxBinAveragePhi(10.) {
+
+  this->InitializeArrays();
 
   AliDebug(2, "AliAnalysisTaskForStudents::AliAnalysisTaskForStudents()");
 
@@ -184,20 +149,20 @@ void AliAnalysisTaskForStudents::UserExec(Option_t *) {
     return;
   }
 
-  /* fill control histgrogram before event cut */
-  fCentralityHist_beforeCut->Fill(
+  Double_t centralityPercentile =
       dynamic_cast<AliMultSelection *>(aAOD->FindListObject("MultSelection"))
-          ->GetMultiplicityPercentile(fCentralitySelCriterion));
+          ->GetMultiplicityPercentile(fCentralitySelCriterion);
+
+  /* fill centrality control histgrogram before event cut */
+  fEventControlHistograms[CEN][BEFORE]->Fill(centralityPercentile);
 
   /* cut event */
   if (!SurviveEventCut(aAOD)) {
     return;
   }
 
-  /* fill control histogram after event cut */
-  fCentralityHist_afterCut->Fill(
-      dynamic_cast<AliMultSelection *>(aAOD->FindListObject("MultSelection"))
-          ->GetMultiplicityPercentile(fCentralitySelCriterion));
+  /* fill centrality control histogram after event cut */
+  fEventControlHistograms[CEN][AFTER]->Fill(centralityPercentile);
 
   /* 2. Start analysis over AODs: */
 
@@ -224,10 +189,10 @@ void AliAnalysisTaskForStudents::UserExec(Option_t *) {
     Double_t phi = aTrack->Phi(); // azimuthal angle
     Double_t eta = aTrack->Eta(); // pseudorapidity
 
-    /* fill control histograms before cutting */
-    fPtHist_beforeCut->Fill(pt);   // filling pt distribution
-    fPhiHist_beforeCut->Fill(phi); // filling phi distriubtion
-    fEtaHist_beforeCut->Fill(eta); // filling eta distribution
+    /* fill track control histograms before cutting */
+    fTrackControlHistograms[PT][BEFORE]->Fill(pt);   // filling pt histogram
+    fTrackControlHistograms[PHI][BEFORE]->Fill(phi); // filling phi histogram
+    fTrackControlHistograms[ETA][BEFORE]->Fill(eta); // filling eta histogram
     nTracks_beforeCut++;
 
     /* cut track */
@@ -235,16 +200,16 @@ void AliAnalysisTaskForStudents::UserExec(Option_t *) {
       continue;
     }
 
-    /* fill control histograms after cutting */
-    fPtHist_afterCut->Fill(pt);   // filling pt distribution
-    fPhiHist_afterCut->Fill(phi); // filling phi distriubtion
-    fEtaHist_afterCut->Fill(eta); // filling eta distribution
+    /* fill track control histograms after cutting */
+    fTrackControlHistograms[PT][AFTER]->Fill(pt);   // filling pt histogram
+    fTrackControlHistograms[PHI][AFTER]->Fill(phi); // filling phi histogram
+    fTrackControlHistograms[ETA][AFTER]->Fill(eta); // filling eta histogram
     nTracks_afterCut++;
   }
 
   /* fill control histogram for Multiplicity after counting all tracks */
-  fMulHist_beforeCut->Fill(nTracks_beforeCut);
-  fMulHist_afterCut->Fill(nTracks_afterCut);
+  fEventControlHistograms[MUL][BEFORE]->Fill(nTracks_beforeCut);
+  fEventControlHistograms[MUL][AFTER]->Fill(nTracks_afterCut);
 
   // c) Reset event-by-event objects:
   // ...
@@ -262,7 +227,7 @@ void AliAnalysisTaskForStudents::UserExec(Option_t *) {
 /* Accessing the merged output list */
 void AliAnalysisTaskForStudents::Terminate(Option_t *) {
 
-  /* fHistList = (TList *)GetOutputData(1); */
+  fHistList = (TList *)GetOutputData(1);
   if (!fHistList) {
     std::cout << "fHistList not around?" << std::endl;
   }
@@ -271,12 +236,75 @@ void AliAnalysisTaskForStudents::Terminate(Option_t *) {
 
   // ... your code for offline calculations ...
 
-  fAveragePhiHist->SetBinContent(1, fPhiHist_afterCut->GetMean());
+  fAveragePhiHist->SetBinContent(
+      1, fTrackControlHistograms[PHI][AFTER]->GetMean());
 
 } // end of void AliAnalysisTaskForStudents::Terminate(Option_t *)
 
 void AliAnalysisTaskForStudents::InitializeArrays() {
-  // Initialize all data members which are arrays in this method.
+  /* Initialize all data members which are arrays in this method */
+  InitializeArraysForTrackControlHistograms();
+  InitializeArraysForEventControlHistograms();
+}
+
+void AliAnalysisTaskForStudents::InitializeArraysForTrackControlHistograms() {
+  /* initialize array of track control histograms */
+  for (int var = 0; var < LAST_ETRACK; ++var) {
+    for (int ba = 0; ba < LAST_EBEFOREAFTER; ++ba) {
+      fTrackControlHistograms[var][ba] = nullptr;
+    }
+  }
+
+  /* default number of bins for track control histograms*/
+  Int_t NbinsTrack[LAST_ETRACK] = {
+      100, // pt
+      360, // phi
+      200, // eta
+  };
+
+  /* default edges for track control histograms */
+  Double_t EdgesTrack[LAST_ETRACK][LAST_EMINMAX] = {
+      {0., 10.},            // pt
+      {0., TMath::TwoPi()}, // phi
+      {-2., 2.}             // eta
+  };
+
+  /* initialize array of binning and edges for track control histograms */
+  for (int var = 0; var < LAST_ETRACK; ++var) {
+    fNbinsTrackControlHistograms[var] = NbinsTrack[var];
+    for (int mm = 0; mm < LAST_EMINMAX; ++mm) {
+      fEdgeTrackControlHistograms[var][mm] = EdgesTrack[var][mm];
+    }
+  }
+}
+
+void AliAnalysisTaskForStudents::InitializeArraysForEventControlHistograms() {
+  /* initialize array of event control histograms */
+  for (int var = 0; var < LAST_EEVENT; ++var) {
+    for (int ba = 0; ba < LAST_EBEFOREAFTER; ++ba) {
+      fEventControlHistograms[var][ba] = nullptr;
+    }
+  }
+
+  /* default number of bins for event control histograms */
+  Int_t NbinsEvent[LAST_EEVENT] = {
+      10,   // cen
+      1000, // mul
+  };
+
+  /* default edges for track control histograms */
+  Double_t EdgesEvent[LAST_EEVENT][LAST_EMINMAX] = {
+      {0., 100},    // cen
+      {0., 20000.}, // mul
+  };
+
+  /* initialize binning and edges for track control histograms */
+  for (int var = 0; var < LAST_EEVENT; ++var) {
+    fNbinsEventControlHistograms[var] = NbinsEvent[var];
+    for (int mm = 0; mm < LAST_EMINMAX; ++mm) {
+      fEdgeEventControlHistograms[var][mm] = EdgesEvent[var][mm];
+    }
+  }
 
  // This is important, since these objects cannot be initialized directly in the constructor list. 
 
@@ -291,7 +319,7 @@ void AliAnalysisTaskForStudents::BookAndNestAllLists() {
   TString sMethodName =
       "void AliAnalysisTaskForStudents::BookAndNestAllLists()";
   if (!fHistList) {
-    Fatal(sMethodName.Data(), "fHistList is NULL");
+    Fatal(sMethodName.Data(), "fHistList is nullptr");
   }
 
   /* 1. Book and nest lists for control histograms: */
@@ -312,83 +340,72 @@ void AliAnalysisTaskForStudents::BookControlHistograms() {
   /* Book all control histograms */
 
   /* fill colors */
-  Color_t colorBeforeCut = kRed - 10;
-  Color_t colorAfterCut = kGreen - 10;
+  Color_t fillColor[LAST_EBEFOREAFTER] = {kRed - 10, kGreen - 10};
 
-  /* Book histograms to hold pt spectra before and after cutting */
-  fPtHist_beforeCut = new TH1F("fPtHist_beforeCut", "atrack->Pt(), before cut",
-                               fNbinsPt, fMinBinPt, fMaxBinPt);
-  fPtHist_beforeCut->SetStats(kFALSE);
-  fPtHist_beforeCut->SetFillColor(colorBeforeCut);
-  fPtHist_beforeCut->GetXaxis()->SetTitle("p_{t}");
-  fControlHistogramsList->Add(fPtHist_beforeCut);
+  /* name of track control histograms */
+  const char *TrackNames[LAST_ETRACK][LAST_EBEFOREAFTER][3] = {
+      {
+          // Name , Title, Name of Xaxis
+          {"fTrackControlHistograms[PT][BEFORE]", "pT, before cut", "p_{T}"},
+          {"fTrackControlHistograms[PT][AFTER]", "pT, after cut", "p_{T}"},
+      },
+      {
+          {"fTrackControlHistograms[PHI][BEFORE]", "#varphi, before cut",
+           "#varphi"},
+          {"fTrackControlHistograms[PHI][AFTER]", "#varphi, after cut",
+           "#varphi"},
+      },
+      {
+          {"fTrackControlHistograms[ETA][BEFORE]", "#eta, before cut", "#eta"},
+          {"fTrackControlHistograms[ETA][AFTER]", "#eta, after cut", "#eta"},
+      }};
 
-  fPtHist_afterCut =
-      dynamic_cast<TH1F *>(fPtHist_beforeCut->Clone("fPtHist_afterCut"));
-  fPtHist_afterCut->SetTitle("atrack->Pt(), after cut");
-  fPtHist_afterCut->SetFillColor(colorAfterCut);
-  fControlHistogramsList->Add(fPtHist_afterCut);
+  /* book track control histograms */
+  for (int i = 0; i < LAST_ETRACK; ++i) {
+    for (int j = 0; j < LAST_EBEFOREAFTER; ++j) {
+      fTrackControlHistograms[i][j] = new TH1F(
+          TrackNames[i][j][0], TrackNames[i][j][1],
+          fNbinsTrackControlHistograms[i], fEdgeTrackControlHistograms[i][MIN],
+          fEdgeTrackControlHistograms[i][MAX]);
+      fTrackControlHistograms[i][j]->SetStats(kFALSE);
+      fTrackControlHistograms[i][j]->SetFillColor(fillColor[j]);
+      fTrackControlHistograms[i][j]->GetXaxis()->SetTitle(TrackNames[i][j][2]);
+      fControlHistogramsList->Add(fTrackControlHistograms[i][j]);
+    }
+  }
 
-  /* Book histograms to hold phi distribution before and after cutting */
-  fPhiHist_beforeCut =
-      new TH1F("fPhiHist_beforeCut", "atrack->Phi(), before cut", fNbinsPhi,
-               fMinBinPhi, fMaxBinPhi);
-  fPhiHist_beforeCut->SetStats(kFALSE);
-  fPhiHist_beforeCut->SetFillColor(colorBeforeCut);
-  fPhiHist_beforeCut->GetXaxis()->SetTitle("#varphi");
-  fControlHistogramsList->Add(fPhiHist_beforeCut);
+  /* name of event control histograms */
+  const char *EventNames[LAST_ETRACK][LAST_EBEFOREAFTER][3] = {
+      {
+          // Name , Title, Name of Xaxis
+          {"fEventControlHistograms[CEN][BEFORE]", "centrality, before cut",
+           "Centrality Percentile"},
+          {"fEventControlHistograms[CEN][AFTER]", "centrality, after cut",
+           "Centrality Percentile"},
+      },
+      {
+          {"fEventControlHistograms[MUL][BEFORE]", "multiplicity, before cut",
+           "M"},
+          {"fEventControlHistograms[MUL][AFTER]", "multiplicity, after cut",
+           "M"},
+      },
+  };
 
-  fPhiHist_afterCut =
-      dynamic_cast<TH1F *>(fPhiHist_beforeCut->Clone("fPhiHist_afterCut"));
-  fPhiHist_afterCut->SetTitle("atrack->Phi, after cut");
-  fPhiHist_afterCut->SetFillColor(colorAfterCut);
-  fControlHistogramsList->Add(fPhiHist_afterCut);
-
-  /* Book histograms to hold eta distribution before and after cutting */
-  fEtaHist_beforeCut =
-      new TH1F("fEtaHist_beforeCut", "atrack->Eta(), before cut", fNbinsEta,
-               fMinBinEta, fMaxBinEta);
-  fEtaHist_beforeCut->SetStats(kFALSE);
-  fEtaHist_beforeCut->SetFillColor(colorBeforeCut);
-  fEtaHist_beforeCut->GetXaxis()->SetTitle("#eta");
-  fControlHistogramsList->Add(fEtaHist_beforeCut);
-
-  fEtaHist_afterCut =
-      dynamic_cast<TH1F *>(fEtaHist_beforeCut->Clone("fEtaHist_afterCut"));
-  fEtaHist_afterCut->SetTitle("atrack->Eta(), after cut");
-  fEtaHist_afterCut->SetFillColor(colorAfterCut);
-  fControlHistogramsList->Add(fEtaHist_afterCut);
-
-  /* Book histograms to hold multiplicity distribution before and after cutting
-   */
-  fMulHist_beforeCut =
-      new TH1F("fMulHist_beforeCut", "Multiplicity, before cut", fNbinsMul,
-               fMinBinMul, fMaxBinMul);
-  fMulHist_beforeCut->SetStats(kFALSE);
-  fMulHist_beforeCut->SetFillColor(colorBeforeCut);
-  fMulHist_beforeCut->GetXaxis()->SetTitle("Multiplicity");
-  fControlHistogramsList->Add(fMulHist_beforeCut);
-
-  fMulHist_afterCut =
-      dynamic_cast<TH1F *>(fMulHist_beforeCut->Clone("fMulHist_afterCut"));
-  fMulHist_afterCut->SetTitle("Multiplicity, after cut");
-  fMulHist_afterCut->SetFillColor(colorAfterCut);
-  fControlHistogramsList->Add(fMulHist_afterCut);
-
-  /* book histograms holding centrality distribution before and after cutting */
-  fCentralityHist_beforeCut =
-      new TH1F("fCentralityHist_beforeCut", "Centrality, before cut",
-               fNbinsCentrality, fMinCentrality, fMaxCentrality);
-  fCentralityHist_beforeCut->SetStats(kFALSE);
-  fCentralityHist_beforeCut->SetFillColor(colorBeforeCut);
-  fCentralityHist_beforeCut->GetXaxis()->SetTitle("Centrality");
-  fControlHistogramsList->Add(fCentralityHist_beforeCut);
-
-  fCentralityHist_afterCut = dynamic_cast<TH1F *>(
-      fCentralityHist_beforeCut->Clone("fCentralityHist_afterCut"));
-  fCentralityHist_afterCut->SetTitle("Centrality, after cut");
-  fCentralityHist_afterCut->SetFillColor(colorAfterCut);
-  fControlHistogramsList->Add(fCentralityHist_afterCut);
+  /* book event control histograms */
+  for (int var = 0; var < LAST_EEVENT; ++var) {
+    for (int ba = 0; ba < LAST_EBEFOREAFTER; ++ba) {
+      fEventControlHistograms[var][ba] =
+          new TH1F(EventNames[var][ba][0], EventNames[var][ba][1],
+                   fNbinsEventControlHistograms[var],
+                   fEdgeEventControlHistograms[var][MIN],
+                   fEdgeEventControlHistograms[var][MAX]);
+      fEventControlHistograms[var][ba]->SetStats(kFALSE);
+      fEventControlHistograms[var][ba]->SetFillColor(fillColor[ba]);
+      fEventControlHistograms[var][ba]->GetXaxis()->SetTitle(
+          EventNames[var][ba][2]);
+      fControlHistogramsList->Add(fEventControlHistograms[var][ba]);
+    }
+  }
 }
 
 void AliAnalysisTaskForStudents::BookFinalResultsHistograms() {
@@ -424,14 +441,14 @@ Bool_t AliAnalysisTaskForStudents::SurviveEventCut(AliVEvent *ave) {
   if (!ams) {
     return kFALSE;
   }
-  Float_t MultiplicityPercentile =
+  Double_t MultiplicityPercentile =
       ams->GetMultiplicityPercentile(fCentralitySelCriterion);
 
   /* cut event if it is not within the centrality percentile */
-  if (MultiplicityPercentile <= fMinCentrality) {
+  /* use edges of the event control histogram for cutting */
+  if (MultiplicityPercentile < fEdgeEventControlHistograms[CEN][MIN])
     return kFALSE;
-  }
-  if (MultiplicityPercentile > fMaxCentrality) {
+  if (MultiplicityPercentile > fEdgeEventControlHistograms[CEN][MAX]) {
     return kFALSE;
   }
 
@@ -442,22 +459,22 @@ Bool_t AliAnalysisTaskForStudents::SurviveEventCut(AliVEvent *ave) {
   }
 
   // cut event if vertex is too out of center
-  if (PrimaryVertex->GetX() <= fPrimayVertexXMin) {
+  if (PrimaryVertex->GetX() < fPrimaryVertexCuts[X][MIN]) {
     return kFALSE;
   }
-  if (PrimaryVertex->GetX() > fPrimayVertexXMax) {
+  if (PrimaryVertex->GetX() > fPrimaryVertexCuts[X][MAX]) {
     return kFALSE;
   }
-  if (PrimaryVertex->GetY() <= fPrimayVertexYMin) {
+  if (PrimaryVertex->GetY() < fPrimaryVertexCuts[Y][MIN]) {
     return kFALSE;
   }
-  if (PrimaryVertex->GetY() > fPrimayVertexYMax) {
+  if (PrimaryVertex->GetY() > fPrimaryVertexCuts[Y][MAX]) {
     return kFALSE;
   }
-  if (PrimaryVertex->GetZ() <= fPrimayVertexZMin) {
+  if (PrimaryVertex->GetZ() < fPrimaryVertexCuts[Z][MIN]) {
     return kFALSE;
   }
-  if (PrimaryVertex->GetZ() > fPrimayVertexZMax) {
+  if (PrimaryVertex->GetZ() > fPrimaryVertexCuts[Z][MAX]) {
     return kFALSE;
   }
 
@@ -468,24 +485,24 @@ Bool_t AliAnalysisTaskForStudents::SurviveTrackCut(AliAODTrack *aTrack) {
   /* check if current track survives track cut */
 
   /* cut pt */
-  if (aTrack->Pt() <= fPtMin) {
+  if (aTrack->Pt() < fTrackCuts[PT][MIN]) {
     return kFALSE;
   }
-  if (aTrack->Pt() > fPtMax) {
+  if (aTrack->Pt() > fTrackCuts[PT][MAX]) {
     return kFALSE;
   }
   /* cut phi */
-  if (aTrack->Phi() <= fPhiMin) {
+  if (aTrack->Phi() < fTrackCuts[PHI][MIN]) {
     return kFALSE;
   }
-  if (aTrack->Eta() > fPhiMax) {
+  if (aTrack->Phi() > fTrackCuts[PHI][MAX]) {
     return kFALSE;
   }
   /* cut eta */
-  if (aTrack->Eta() <= fEtaMin) {
+  if (aTrack->Eta() < fTrackCuts[ETA][MIN]) {
     return kFALSE;
   }
-  if (aTrack->Eta() > fEtaMax) {
+  if (aTrack->Eta() > fTrackCuts[ETA][MAX]) {
     return kFALSE;
   }
 
@@ -532,47 +549,47 @@ void AliAnalysisTaskForStudents::GetPointersForControlHistograms() {
     Fatal(sMethodName.Data(), "fControlHistogramsList");
   }
 
-  /* initalize all control histograms */
-  fPtHist_beforeCut = dynamic_cast<TH1F *>(
-      fControlHistogramsList->FindObject("fPtHist_beforeCut"));
-  if (!fPtHist_beforeCut) {
-    Fatal(sMethodName.Data(), "fPtHist_beforeCut");
-  }
-  fPtHist_afterCut = dynamic_cast<TH1F *>(
-      fControlHistogramsList->FindObject("fPtHist_afterCut"));
-  if (!fPtHist_afterCut) {
-    Fatal(sMethodName.Data(), "fPtHist_afterCut");
-  }
-  fEtaHist_beforeCut = dynamic_cast<TH1F *>(
-      fControlHistogramsList->FindObject("fEtaHist_beforeCut"));
-  if (!fEtaHist_beforeCut) {
-    Fatal(sMethodName.Data(), "fEtaHist_beforeCut");
-  }
-  fEtaHist_afterCut = dynamic_cast<TH1F *>(
-      fControlHistogramsList->FindObject("fEtaHist_afterCut"));
-  if (!fEtaHist_afterCut) {
-    Fatal(sMethodName.Data(), "fEtaHist_afterCut");
-  }
-  fPhiHist_beforeCut = dynamic_cast<TH1F *>(
-      fControlHistogramsList->FindObject("fPhiHist_beforeCut"));
-  if (!fPhiHist_beforeCut) {
-    Fatal(sMethodName.Data(), "fPhiHist_beforeCut");
-  }
-  fPhiHist_afterCut = dynamic_cast<TH1F *>(
-      fControlHistogramsList->FindObject("fPhiHist_afterCut"));
-  if (!fPhiHist_afterCut) {
-    Fatal(sMethodName.Data(), "fPhiHist_afterCut");
-  }
-  fMulHist_beforeCut = dynamic_cast<TH1F *>(
-      fControlHistogramsList->FindObject("fMulHist_beforeCut"));
-  if (!fMulHist_beforeCut) {
-    Fatal(sMethodName.Data(), "fMulHist");
-  }
-  fMulHist_afterCut = dynamic_cast<TH1F *>(
-      fControlHistogramsList->FindObject("fMulHist_afterCut"));
-  if (!fMulHist_afterCut) {
-    Fatal(sMethodName.Data(), "fMulHist");
-  }
+  /* /1* initalize all control histograms *1/ */
+  /* fPtHist_beforeCut = dynamic_cast<TH1F *>( */
+  /*     fControlHistogramsList->FindObject("fPtHist_beforeCut")); */
+  /* if (!fPtHist_beforeCut) { */
+  /*   Fatal(sMethodName.Data(), "fPtHist_beforeCut"); */
+  /* } */
+  /* fPtHist_afterCut = dynamic_cast<TH1F *>( */
+  /*     fControlHistogramsList->FindObject("fPtHist_afterCut")); */
+  /* if (!fPtHist_afterCut) { */
+  /*   Fatal(sMethodName.Data(), "fPtHist_afterCut"); */
+  /* } */
+  /* fEtaHist_beforeCut = dynamic_cast<TH1F *>( */
+  /*     fControlHistogramsList->FindObject("fEtaHist_beforeCut")); */
+  /* if (!fEtaHist_beforeCut) { */
+  /*   Fatal(sMethodName.Data(), "fEtaHist_beforeCut"); */
+  /* } */
+  /* fEtaHist_afterCut = dynamic_cast<TH1F *>( */
+  /*     fControlHistogramsList->FindObject("fEtaHist_afterCut")); */
+  /* if (!fEtaHist_afterCut) { */
+  /*   Fatal(sMethodName.Data(), "fEtaHist_afterCut"); */
+  /* } */
+  /* fPhiHist_beforeCut = dynamic_cast<TH1F *>( */
+  /*     fControlHistogramsList->FindObject("fPhiHist_beforeCut")); */
+  /* if (!fPhiHist_beforeCut) { */
+  /*   Fatal(sMethodName.Data(), "fPhiHist_beforeCut"); */
+  /* } */
+  /* fPhiHist_afterCut = dynamic_cast<TH1F *>( */
+  /*     fControlHistogramsList->FindObject("fPhiHist_afterCut")); */
+  /* if (!fPhiHist_afterCut) { */
+  /*   Fatal(sMethodName.Data(), "fPhiHist_afterCut"); */
+  /* } */
+  /* fMulHist_beforeCut = dynamic_cast<TH1F *>( */
+  /*     fControlHistogramsList->FindObject("fMulHist_beforeCut")); */
+  /* if (!fMulHist_beforeCut) { */
+  /*   Fatal(sMethodName.Data(), "fMulHist"); */
+  /* } */
+  /* fMulHist_afterCut = dynamic_cast<TH1F *>( */
+  /*     fControlHistogramsList->FindObject("fMulHist_afterCut")); */
+  /* if (!fMulHist_afterCut) { */
+  /*   Fatal(sMethodName.Data(), "fMulHist"); */
+  /* } */
   /* Set again all flags: */
   /* fFillBuffers = (Bool_t)fBuffersFlagsPro->GetBinContent(1); */
   /* fMaxBuffer = fBuffersFlagsPro->GetBinContent(2); */

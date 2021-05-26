@@ -2,7 +2,7 @@
  * File              : AliAnalysisTaskForStudents.h
  * Author            : Anton Riedel <anton.riedel@tum.de>
  * Date              : 07.05.2021
- * Last Modified Date: 25.05.2021
+ * Last Modified Date: 26.05.2021
  * Last Modified By  : Anton Riedel <anton.riedel@tum.de>
  */
 
@@ -25,6 +25,13 @@
 #include "AliVEvent.h"
 #include "TH1F.h"
 
+/* enumerations */
+enum eEvent { CEN, MUL, LAST_EEVENT };
+enum eTrack { PT, PHI, ETA, LAST_ETRACK };
+enum eBeforeAfter { BEFORE, AFTER, LAST_EBEFOREAFTER };
+enum eMinMax { MIN, MAX, LAST_EMINMAX };
+enum eXYZ { X, Y, Z, LAST_EXYZ };
+
 class AliAnalysisTaskForStudents : public AliAnalysisTaskSE {
 public:
   AliAnalysisTaskForStudents();
@@ -37,6 +44,8 @@ public:
 
   /* Methods called in the constructor: */
   virtual void InitializeArrays();
+  virtual void InitializeArraysForTrackControlHistograms();
+  virtual void InitializeArraysForEventControlHistograms();
 
   /* Methods called in UserCreateOutputObjects(): */
   virtual void BookAndNestAllLists();
@@ -62,30 +71,40 @@ public:
   void SetFinalResultsList(TList *const frl) { this->fFinalResultsList = frl; };
   TList *GetFinalResultsList() const { return this->fFinalResultsList; }
 
-  void SetPtBinning(Int_t const nbins, const Float_t min, const Float_t max) {
-    this->fNbinsPt = nbins;
-    this->fMinBinPt = min;
-    this->fMaxBinPt = max;
+  void SetPtBinning(Int_t const nbins, const Double_t min, const Double_t max) {
+    this->fNbinsTrackControlHistograms[PT] = nbins;
+    this->fEdgeTrackControlHistograms[PT][MIN] = min;
+    this->fEdgeTrackControlHistograms[PT][MAX] = max;
   };
-  void SetPhiBinning(Int_t const nbins, const Float_t min, const Float_t max) {
-    this->fNbinsPhi = nbins;
-    this->fMinBinPhi = min;
-    this->fMaxBinPhi = max;
+  void SetPhiBinning(Int_t const nbins, const Double_t min,
+                     const Double_t max) {
+    this->fNbinsTrackControlHistograms[PHI] = nbins;
+    this->fEdgeTrackControlHistograms[PHI][MIN] = min;
+    this->fEdgeTrackControlHistograms[PHI][MAX] = max;
   };
-  void SetEtaBinning(Int_t const nbins, const Float_t min, const Float_t max) {
-    this->fNbinsEta = nbins;
-    this->fMinBinEta = min;
-    this->fMaxBinEta = max;
-  };
-
-  void SetMulBinning(Int_t const nbins, const Float_t min, const Float_t max) {
-    this->fNbinsMul = nbins;
-    this->fMinBinMul = min;
-    this->fMaxBinMul = max;
+  void SetEtaBinning(Int_t const nbins, const Double_t min,
+                     const Double_t max) {
+    this->fNbinsTrackControlHistograms[ETA] = nbins;
+    this->fEdgeTrackControlHistograms[ETA][MIN] = min;
+    this->fEdgeTrackControlHistograms[ETA][MAX] = max;
   };
 
-  void SetAveragePhiBinning(Int_t const nbins, const Float_t min,
-                            const Float_t max) {
+  void SetCenBinning(Int_t const nbins, const Double_t min,
+                     const Double_t max) {
+    this->fNbinsEventControlHistograms[CEN] = nbins;
+    this->fEdgeEventControlHistograms[CEN][MIN] = min;
+    this->fEdgeEventControlHistograms[CEN][MAX] = max;
+  };
+
+  void SetMulBinning(Int_t const nbins, const Double_t min,
+                     const Double_t max) {
+    this->fNbinsEventControlHistograms[MUL] = nbins;
+    this->fEdgeEventControlHistograms[MUL][MIN] = min;
+    this->fEdgeEventControlHistograms[MUL][MAX] = max;
+  };
+
+  void SetAveragePhiBinning(Int_t const nbins, const Double_t min,
+                            const Double_t max) {
     this->fNbinsAveragePhi = nbins;
     this->fMinBinAveragePhi = min;
     this->fMaxBinAveragePhi = max;
@@ -95,43 +114,34 @@ public:
     this->fCentralitySelCriterion = SelCriterion;
   }
 
-  void SetCentralityBinning(Int_t const nbins, Float_t min, Float_t max) {
-    this->fNbinsCentrality = nbins;
-    this->fMinCentrality = min;
-    this->fMaxCentrality = max;
-  };
-
-  void SetPtCuts(Float_t ptMin, Float_t ptMax) {
-    this->fPtMin = ptMin;
-    this->fPtMax = ptMax;
+  void SetPtCuts(Double_t min, Double_t max) {
+    this->fTrackCuts[PT][MIN] = min;
+    this->fTrackCuts[PT][MAX] = max;
   }
 
-  void SetPhiCuts(Float_t phiMin, Float_t phiMax) {
-    this->fPhiMin = phiMin;
-    this->fPhiMax = phiMax;
+  void SetPhiCuts(Double_t min, Double_t max) {
+    this->fTrackCuts[PHI][MIN] = min;
+    this->fTrackCuts[PHI][MAX] = max;
   }
 
-  void SetEtaCuts(Float_t etaMin, Float_t etaMax) {
-    this->fEtaMin = etaMin;
-    this->fEtaMax = etaMax;
+  void SetEtaCuts(Double_t min, Double_t max) {
+    this->fTrackCuts[ETA][MIN] = min;
+    this->fTrackCuts[ETA][MAX] = max;
   }
 
-  void SetPrimaryVertexXCuts(Float_t PrimaryVertexXMin,
-                             Float_t PrimaryVertexXMax) {
-    this->fPrimayVertexXMin = PrimaryVertexXMin;
-    this->fPrimayVertexXMax = PrimaryVertexXMax;
+  void SetPrimaryVertexXCuts(Double_t min, Double_t max) {
+    this->fPrimaryVertexCuts[X][MIN] = min;
+    this->fPrimaryVertexCuts[X][MAX] = max;
   }
 
-  void SetPrimaryVertexYCuts(Float_t PrimaryVertexYMin,
-                             Float_t PrimaryVertexYMax) {
-    this->fPrimayVertexYMin = PrimaryVertexYMin;
-    this->fPrimayVertexYMax = PrimaryVertexYMax;
+  void SetPrimaryVertexYCuts(Double_t min, Double_t max) {
+    this->fPrimaryVertexCuts[Y][MIN] = min;
+    this->fPrimaryVertexCuts[Y][MAX] = max;
   }
 
-  void SetPrimaryVertexZCuts(Float_t PrimaryVertexZMin,
-                             Float_t PrimaryVertexZMax) {
-    this->fPrimayVertexZMin = PrimaryVertexZMin;
-    this->fPrimayVertexZMax = PrimaryVertexZMax;
+  void SetPrimaryVertexZCuts(Double_t min, Double_t max) {
+    this->fPrimaryVertexCuts[Z][MIN] = min;
+    this->fPrimaryVertexCuts[Z][MAX] = max;
   }
 
   void SetFilterbit(Int_t Filterbit) { this->fFilterbit = Filterbit; }
@@ -145,75 +155,31 @@ private:
   TList *fHistList;
 
   /* control histograms */
-  /* list to hold all control histograms */
   TList *fControlHistogramsList;
-
-  /* control histogram for pt */
-  TH1F *fPtHist_beforeCut; // atrack->Pt(), before cutting
-  TH1F *fPtHist_afterCut;  // atrack->Pt(), after cutting
-  Int_t fNbinsPt;          // number of bins
-  Float_t fMinBinPt;       // min bin
-  Float_t fMaxBinPt;       // max bin
-
-  /* control histogram for phi */
-  TH1F *fPhiHist_beforeCut; // atrack->Phi(), before cutting
-  TH1F *fPhiHist_afterCut;  // atrack->Phi(), after cutting
-  Int_t fNbinsPhi;          // number of bins
-  Float_t fMinBinPhi;       // min bin
-  Float_t fMaxBinPhi;       // max bin
-
-  /* control histogram for eta */
-  TH1F *fEtaHist_beforeCut; // atrack->Eta(), before cutting
-  TH1F *fEtaHist_afterCut;  // atrack->Eta(), after cutting
-  Int_t fNbinsEta;          // number of bins
-  Float_t fMinBinEta;       // min bin
-  Float_t fMaxBinEta;       // max bin
-
-  /* control histogram for multiplicity */
-  TH1F *fMulHist_beforeCut; // AliAODEvent->GetMultiplicity(), before cutting
-  TH1F *fMulHist_afterCut;  // AliAODEvent->GetMultiplicity(), after cutting
-  Int_t fNbinsMul;          // number of bins
-  Float_t fMinBinMul;       // min bin
-  Float_t fMaxBinMul;       // max bin
-
-  /* control histogram for centrality */
-  /* (AliMultSelection*)AliAODEvent->FindListObject("MultSelection")->GetMultiplicityPercentile(fCentralitySelCriterion)
-   */
-  TH1F *fCentralityHist_beforeCut; // before cutting
-  TH1F *fCentralityHist_afterCut;  // after cutting
-  Int_t fNbinsCentrality;          // number of bins
-  Float_t fMinCentrality;          // min centrality
-  Float_t fMaxCentrality;          // max centrality
+  /* array to hold control histograms for tracks */
+  TH1F *fTrackControlHistograms[LAST_ETRACK][LAST_EBEFOREAFTER];
+  Int_t fNbinsTrackControlHistograms[LAST_ETRACK];
+  Double_t fEdgeTrackControlHistograms[LAST_ETRACK][LAST_EMINMAX];
+  /* array to hold control histograms for events */
+  TH1F *fEventControlHistograms[LAST_EEVENT][LAST_EBEFOREAFTER];
+  Int_t fNbinsEventControlHistograms[LAST_EEVENT];
+  Double_t fEdgeEventControlHistograms[LAST_EEVENT][LAST_EMINMAX];
 
   /* cuts */
   TString fCentralitySelCriterion; // selection criterion for centrality
-  /* Float_t fMinCentrality;          // min centrality for cutting, already
-   * defined */
-  /* Float_t fMaxCentrality;          // max centrality for cutting, already
-   * defined */
-  Float_t fPtMin;            // minimal pt for cutting
-  Float_t fPtMax;            // maximal pt for cutting
-  Float_t fPhiMin;           // minimal phi for cutting
-  Float_t fPhiMax;           // maximal phi for cutting
-  Float_t fEtaMin;           // minimal eta for cutting
-  Float_t fEtaMax;           // maximal eta for cutting
-  Float_t fPrimayVertexXMin; // minimal x displacement of primary vertex
-  Float_t fPrimayVertexXMax; // maximal x displacement of primary vertex
-  Float_t fPrimayVertexYMin; // minimal y displacement of primary vertex
-  Float_t fPrimayVertexYMax; // maximal y displacement of primary vertex
-  Float_t fPrimayVertexZMin; // minimal z displacement of primary vertex
-  Float_t fPrimayVertexZMax; // maximal z displacement of primary vertex
-  Int_t fFilterbit;          // filterbit
+  Double_t fTrackCuts[LAST_ETRACK][LAST_EMINMAX];
+  Double_t fPrimaryVertexCuts[LAST_EXYZ][LAST_EMINMAX];
+  Int_t fFilterbit; // filterbit
 
   /* Final results: */
-  TList *fFinalResultsList;  // list to hold all histograms with final results
-  TH1F *fAveragePhiHist;     // Mean of Phi
-  Int_t fNbinsAveragePhi;    // number of bins
-  Float_t fMinBinAveragePhi; // min bin
-  Float_t fMaxBinAveragePhi; // max bin
+  TList *fFinalResultsList;   // list to hold all histograms with final results
+  TH1F *fAveragePhiHist;      // Mean of Phi
+  Int_t fNbinsAveragePhi;     // number of bins
+  Double_t fMinBinAveragePhi; // min bin
+  Double_t fMaxBinAveragePhi; // max bin
 
   // Increase this counter in each new version:
-  ClassDef(AliAnalysisTaskForStudents, 2);
+  ClassDef(AliAnalysisTaskForStudents, 3);
 };
 
 #endif
