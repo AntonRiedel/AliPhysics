@@ -91,6 +91,7 @@ AliAnalysisTaskForStudents::AliAnalysisTaskForStudents()
       fFinalResultsList(nullptr) {
   /* Dummy constructor */
 
+  /* initialze arrays in dummy constructor !!!! */
   this->InitializeArrays();
 
   AliDebug(2, "AliAnalysisTaskForStudents::AliAnalysisTaskForStudents()");
@@ -108,19 +109,19 @@ AliAnalysisTaskForStudents::~AliAnalysisTaskForStudents() {
 void AliAnalysisTaskForStudents::UserCreateOutputObjects() {
   /* Called at every worker node to initialize. */
 
-  // a) Trick to avoid name clashes, part 1;
-  // b) Book and nest all lists;
-  // c) Book all objects;
-  // *) Trick to avoid name clashes, part 2.
+  /* 1) Trick to avoid name clashes, part 1; */
+  /* 2) Book and nest all lists; */
+  /* 3) Book all objects; */
+  /* *) Trick to avoid name clashes, part 2. */
 
-  // a) Trick to avoid name clashes, part 1:
+  /* 1) Trick to avoid name clashes, part 1 */
   Bool_t oldHistAddStatus = TH1::AddDirectoryStatus();
   TH1::AddDirectory(kFALSE);
 
-  // b) Book and nest all lists:
+  /* 2) Book and nest all lists */
   this->BookAndNestAllLists();
 
-  // c) Book all objects:
+  /* 3) Book all objects */
   this->BookControlHistograms();
   this->BookFinalResultsHistograms();
 
@@ -233,6 +234,7 @@ void AliAnalysisTaskForStudents::Terminate(Option_t *) {
 
   // ... your code for offline calculations ...
 
+  /* get average value of phi and write it into its own histogram */
   fFinalResultHistograms[PHIAVG]->SetBinContent(
       1, fTrackControlHistograms[PHI][AFTER]->GetMean());
 }
@@ -252,28 +254,13 @@ void AliAnalysisTaskForStudents::InitializeArraysForTrackControlHistograms() {
       fTrackControlHistograms[var][ba] = nullptr;
     }
   }
-
-  /* default number of bins for track control histograms*/
-  Int_t NbinsTrackControlHistogramsDefault[LAST_ETRACK] = {
-      100, // PT
-      360, // PHI
-      200, // ETA
-  };
-
-  /* default edges for track control histograms */
-  Double_t EdgesTrackControlHistogramDefaults[LAST_ETRACK][LAST_EMINMAX] = {
-      // MIN MAX
-      {0., 10.},            // PT
-      {0., TMath::TwoPi()}, // PHI
-      {-2., 2.}             // ETA
-  };
-
-  /* initialize array of binning and edges for track control histograms */
+  /* initialize array of bins and edges for track control histograms */
   for (int var = 0; var < LAST_ETRACK; ++var) {
-    fNbinsTrackControlHistograms[var] = NbinsTrackControlHistogramsDefault[var];
+    fNbinsTrackControlHistograms[var] =
+        fNbinsTrackControlHistogramsDefault[var];
     for (int mm = 0; mm < LAST_EMINMAX; ++mm) {
       fEdgeTrackControlHistograms[var][mm] =
-          EdgesTrackControlHistogramDefaults[var][mm];
+          fEdgesTrackControlHistogramDefaults[var][mm];
     }
   }
 }
@@ -285,58 +272,29 @@ void AliAnalysisTaskForStudents::InitializeArraysForEventControlHistograms() {
       fEventControlHistograms[var][ba] = nullptr;
     }
   }
-
-  /* default number of bins for event control histograms */
-  Int_t NbinsEventControlHistogramDefaults[LAST_EEVENT] = {
-      10,   // CEN
-      1000, // MUL
-  };
-
-  /* default edges for track control histograms */
-  Double_t EdgesEventControlHistogramsDefault[LAST_EEVENT][LAST_EMINMAX] = {
-      // MIN MAX
-      {0., 100},    // CEN
-      {0., 20000.}, // MUL
-  };
-
   /* initialize binning and edges for track control histograms */
   for (int var = 0; var < LAST_EEVENT; ++var) {
-    fNbinsEventControlHistograms[var] = NbinsEventControlHistogramDefaults[var];
+    fNbinsEventControlHistograms[var] =
+        fNbinsEventControlHistogramDefaults[var];
     for (int mm = 0; mm < LAST_EMINMAX; ++mm) {
       fEdgeEventControlHistograms[var][mm] =
-          EdgesEventControlHistogramsDefault[var][mm];
+          fEdgesEventControlHistogramsDefault[var][mm];
     }
   }
 }
 
 void AliAnalysisTaskForStudents::InitializeArraysForCuts() {
   /* initialize all arrays for cuts */
-
-  /* default track cuts */
-  Double_t TrackCutsDefault[LAST_ETRACK][LAST_EMINMAX] = {
-      // MIN MAX
-      {0., 5.},             // PT
-      {0., TMath::TwoPi()}, // PHI
-      {-3., 3.},            // ETA
-  };
   /* initialize array for track cuts */
   for (int var = 0; var < LAST_ETRACK; ++var) {
     for (int mm = 0; mm < LAST_EMINMAX; ++mm) {
-      fTrackCuts[var][mm] = TrackCutsDefault[var][mm];
+      fTrackCuts[var][mm] = fTrackCutsDefault[var][mm];
     }
   }
-
-  /* default primary vertex cuts */
-  Double_t PrimaryVertexCutsDefault[LAST_EXYZ][LAST_EMINMAX] = {
-      // MIN MAX
-      {-10., 10.}, // X
-      {-10., 10.}, // Y
-      {-10., 10.}, // Z
-  };
   /* initialize array for track cuts */
   for (int xyz = 0; xyz < LAST_EXYZ; ++xyz) {
     for (int mm = 0; mm < LAST_EMINMAX; ++mm) {
-      fPrimaryVertexCuts[xyz][mm] = PrimaryVertexCutsDefault[xyz][mm];
+      fPrimaryVertexCuts[xyz][mm] = fPrimaryVertexCutsDefault[xyz][mm];
     }
   }
 }
@@ -347,24 +305,12 @@ void AliAnalysisTaskForStudents::InitializeArraysForFinalResultHistograms() {
   for (int final = 0; final < LAST_EFINAL; ++final) {
     fFinalResultHistograms[final] = nullptr;
   }
-
-  /* default number of bins for final result histograms */
-  Int_t NbinsFinalResultHistogramDefaults[LAST_EFINAL] = {
-      1, // PHIAVG
-  };
-
-  /* default edges for track control histograms */
-  Double_t EdgesFinalResultHistogramsDefault[LAST_EFINAL][LAST_EMINMAX] = {
-      // MIN MAX
-      {0., 1.}, // PHIAVG
-  };
-
   /* initialize binning and edges for final result histograms */
   for (int var = 0; var < LAST_EFINAL; ++var) {
-    fNbinsFinalResultHistograms[var] = NbinsFinalResultHistogramDefaults[var];
+    fNbinsFinalResultHistograms[var] = fNbinsFinalResultHistogramDefaults[var];
     for (int mm = 0; mm < LAST_EMINMAX; ++mm) {
       fEdgeFinalResultHistograms[var][mm] =
-          EdgesFinalResultHistogramsDefault[var][mm];
+          fEdgesFinalResultHistogramsDefault[var][mm];
     }
   }
 }
@@ -375,10 +321,8 @@ void AliAnalysisTaskForStudents::BookAndNestAllLists() {
   /* 1. Book and nest lists for control histograms */
   /* 2. Book and nest lists for final results */
 
-  TString sMethodName =
-      "void AliAnalysisTaskForStudents::BookAndNestAllLists()";
   if (!fHistList) {
-    Fatal(sMethodName.Data(), "fHistList is nullptr");
+    std::cout << __LINE__ << ": Did not get " << fHistListName << std::endl;
   }
 
   /* 1. Book and nest lists for control histograms: */

@@ -182,8 +182,20 @@ private:
       },            // ETA
   };
   Int_t fNbinsTrackControlHistograms[LAST_ETRACK];
+  /* default number of bins for track control histograms*/
+  Int_t fNbinsTrackControlHistogramsDefault[LAST_ETRACK] = {
+      100, // PT
+      360, // PHI
+      200, // ETA
+  };
   Double_t fEdgeTrackControlHistograms[LAST_ETRACK][LAST_EMINMAX];
-
+  /* default edges for track control histograms */
+  Double_t fEdgesTrackControlHistogramDefaults[LAST_ETRACK][LAST_EMINMAX] = {
+      // MIN MAX
+      {0., 10.},            // PT
+      {0., TMath::TwoPi()}, // PHI
+      {-2., 2.}             // ETA
+  };
   /* array to hold control histograms for events */
   TH1F *fEventControlHistograms[LAST_EEVENT][LAST_EBEFOREAFTER];
   /* name of event control histograms */
@@ -203,12 +215,37 @@ private:
       },         // MUL
   };
   Int_t fNbinsEventControlHistograms[LAST_EEVENT];
+  /* default number of bins for event control histograms */
+  Int_t fNbinsEventControlHistogramDefaults[LAST_EEVENT] = {
+      10,   // CEN
+      1000, // MUL
+  };
   Double_t fEdgeEventControlHistograms[LAST_EEVENT][LAST_EMINMAX];
+  /* default edges for track control histograms */
+  Double_t fEdgesEventControlHistogramsDefault[LAST_EEVENT][LAST_EMINMAX] = {
+      // MIN MAX
+      {0., 100},    // CEN
+      {0., 20000.}, // MUL
+  };
 
   /* cuts */
   TString fCentralitySelCriterion;
   Double_t fTrackCuts[LAST_ETRACK][LAST_EMINMAX];
+  /* default track cuts */
+  Double_t fTrackCutsDefault[LAST_ETRACK][LAST_EMINMAX] = {
+      // MIN MAX
+      {0., 5.},             // PT
+      {0., TMath::TwoPi()}, // PHI
+      {-3., 3.},            // ETA
+  };
   Double_t fPrimaryVertexCuts[LAST_EXYZ][LAST_EMINMAX];
+  /* default primary vertex cuts */
+  Double_t fPrimaryVertexCutsDefault[LAST_EXYZ][LAST_EMINMAX] = {
+      // MIN MAX
+      {-10., 10.}, // X
+      {-10., 10.}, // Y
+      {-10., 10.}, // Z
+  };
   Int_t fFilterbit;
 
   /* Final results */
@@ -222,7 +259,16 @@ private:
        "#varphi"}, // PHIAVG
   };
   Int_t fNbinsFinalResultHistograms[LAST_EFINAL];
+  /* default number of bins for final result histograms */
+  Int_t fNbinsFinalResultHistogramDefaults[LAST_EFINAL] = {
+      1, // PHIAVG
+  };
   Double_t fEdgeFinalResultHistograms[LAST_EFINAL][LAST_EMINMAX]; // min bin
+  /* default edges for track control histograms */
+  Double_t fEdgesFinalResultHistogramsDefault[LAST_EFINAL][LAST_EMINMAX] = {
+      // MIN MAX
+      {0., 1.}, // PHIAVG
+  };
 
   // Increase this counter in each new version:
   ClassDef(AliAnalysisTaskForStudents, 3);
