@@ -2,7 +2,7 @@
  * File              : AliAnalysisTaskForStudents.cxx
  * Author            : Anton Riedel <anton.riedel@tum.de>
  * Date              : 07.05.2021
- * Last Modified Date: 26.05.2021
+ * Last Modified Date: 04.06.2021
  * Last Modified By  : Anton Riedel <anton.riedel@tum.de>
  */
 
@@ -238,13 +238,13 @@ void AliAnalysisTaskForStudents::Terminate(Option_t *) {
 
   fAveragePhiHist->SetBinContent(
       1, fTrackControlHistograms[PHI][AFTER]->GetMean());
-
-} // end of void AliAnalysisTaskForStudents::Terminate(Option_t *)
+}
 
 void AliAnalysisTaskForStudents::InitializeArrays() {
   /* Initialize all data members which are arrays in this method */
   InitializeArraysForTrackControlHistograms();
   InitializeArraysForEventControlHistograms();
+  InitializeArraysForCuts();
 }
 
 void AliAnalysisTaskForStudents::InitializeArraysForTrackControlHistograms() {
@@ -305,10 +305,40 @@ void AliAnalysisTaskForStudents::InitializeArraysForEventControlHistograms() {
       fEdgeEventControlHistograms[var][mm] = EdgesEvent[var][mm];
     }
   }
+}
 
- // This is important, since these objects cannot be initialized directly in the constructor list. 
+void AliAnalysisTaskForStudents::InitializeArraysForCuts() {
+  /* initialize all arrays for cuts */
 
-} // void AliAnalysisTaskForStudents::InitializeArrays()
+  /* default track cuts */
+  Double_t TrackCutsDefault[LAST_ETRACK][LAST_EMINMAX] = {
+      // MIN MAX
+      {0., 5.},             // PT
+      {0., TMath::TwoPi()}, // PHI
+      {-3., 3.},            // ETA
+  };
+  /* initialize array for track cuts */
+  for (int var = 0; var < LAST_ETRACK; ++var) {
+    for (int mm = 0; mm < LAST_EMINMAX; ++mm) {
+      fTrackCuts[var][mm] = TrackCutsDefault[var][mm];
+    }
+  }
+
+  /* default primary vertex cuts */
+  Double_t PrimaryVertexCutsDefault[LAST_EXYZ][LAST_EMINMAX] = {
+      // MIN MAX
+      {-10., 10.}, // X
+      {-10., 10.}, // Y
+      {-10., 10.}, // Z
+  };
+  /* initialize array for track cuts */
+  for (int xyz = 0; xyz < LAST_EXYZ; ++xyz) {
+    for (int mm = 0; mm < LAST_EMINMAX; ++mm) {
+      fPrimaryVertexCuts[xyz][mm] = PrimaryVertexCutsDefault[xyz][mm];
+    }
+  }
+}
+>>>>>>> Add InitializeArraysForCuts() method
 
 void AliAnalysisTaskForStudents::BookAndNestAllLists() {
   /* Book and nest all lists nested in the base list fHistList. */

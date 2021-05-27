@@ -2,7 +2,7 @@
  * File              : AliAnalysisTaskForStudents.h
  * Author            : Anton Riedel <anton.riedel@tum.de>
  * Date              : 07.05.2021
- * Last Modified Date: 26.05.2021
+ * Last Modified Date: 27.05.2021
  * Last Modified By  : Anton Riedel <anton.riedel@tum.de>
  */
 
@@ -46,6 +46,7 @@ public:
   virtual void InitializeArrays();
   virtual void InitializeArraysForTrackControlHistograms();
   virtual void InitializeArraysForEventControlHistograms();
+  virtual void InitializeArraysForCuts();
 
   /* Methods called in UserCreateOutputObjects(): */
   virtual void BookAndNestAllLists();
