@@ -272,7 +272,7 @@ void AliAnalysisTaskForStudents::InitializeArraysForEventControlHistograms() {
       fEventControlHistograms[var][ba] = nullptr;
     }
   }
-  /* initialize binning and edges for track control histograms */
+  /* initialize bins and edges for event control histograms */
   for (int var = 0; var < LAST_EEVENT; ++var) {
     fNbinsEventControlHistograms[var] =
         fNbinsEventControlHistogramDefaults[var];
@@ -302,10 +302,10 @@ void AliAnalysisTaskForStudents::InitializeArraysForCuts() {
 
 void AliAnalysisTaskForStudents::InitializeArraysForFinalResultHistograms() {
   /* initialize array for final result histograms */
-  for (int final = 0; final < LAST_EFINAL; ++final) {
-    fFinalResultHistograms[final] = nullptr;
+  for (int var = 0; var < LAST_EFINAL; ++var) {
+    fFinalResultHistograms[var] = nullptr;
   }
-  /* initialize binning and edges for final result histograms */
+  /* initialize bins and edges for final result histograms */
   for (int var = 0; var < LAST_EFINAL; ++var) {
     fNbinsFinalResultHistograms[var] = fNbinsFinalResultHistogramDefaults[var];
     for (int mm = 0; mm < LAST_EMINMAX; ++mm) {
@@ -345,18 +345,19 @@ void AliAnalysisTaskForStudents::BookControlHistograms() {
   Color_t fillColor[LAST_EBEFOREAFTER] = {kRed - 10, kGreen - 10};
 
   /* book track control histograms */
-  for (int i = 0; i < LAST_ETRACK; ++i) {
-    for (int j = 0; j < LAST_EBEFOREAFTER; ++j) {
-      fTrackControlHistograms[i][j] = new TH1F(
-          fTrackControlHistogramNames[i][j][0],
-          fTrackControlHistogramNames[i][j][1], fNbinsTrackControlHistograms[i],
-          fEdgeTrackControlHistograms[i][MIN],
-          fEdgeTrackControlHistograms[i][MAX]);
-      fTrackControlHistograms[i][j]->SetStats(kFALSE);
-      fTrackControlHistograms[i][j]->SetFillColor(fillColor[j]);
-      fTrackControlHistograms[i][j]->GetXaxis()->SetTitle(
-          fTrackControlHistogramNames[i][j][2]);
-      fControlHistogramsList->Add(fTrackControlHistograms[i][j]);
+  for (int var = 0; var < LAST_ETRACK; ++var) {
+    for (int ba = 0; ba < LAST_EBEFOREAFTER; ++ba) {
+      fTrackControlHistograms[var][ba] =
+          new TH1F(fTrackControlHistogramNames[var][ba][0],
+                   fTrackControlHistogramNames[var][ba][1],
+                   fNbinsTrackControlHistograms[var],
+                   fEdgeTrackControlHistograms[var][MIN],
+                   fEdgeTrackControlHistograms[var][MAX]);
+      fTrackControlHistograms[var][ba]->SetStats(kFALSE);
+      fTrackControlHistograms[var][ba]->SetFillColor(fillColor[ba]);
+      fTrackControlHistograms[var][ba]->GetXaxis()->SetTitle(
+          fTrackControlHistogramNames[var][ba][2]);
+      fControlHistogramsList->Add(fTrackControlHistograms[var][ba]);
     }
   }
 

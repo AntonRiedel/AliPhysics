@@ -149,14 +149,14 @@ private:
   AliAnalysisTaskForStudents &
   operator=(const AliAnalysisTaskForStudents &aatmpf);
 
-  /* base list to hold all output object (a.k.a. grandmother of all lists) */
+  /* base list holding all output object (a.k.a. grandmother of all lists) */
   TList *fHistList;
   TString fHistListName = "outputStudentAnalysis";
 
   /* control histograms */
   TList *fControlHistogramsList;
   TString fControlHistogramsListName = "ControlHistograms";
-  /* array to hold control histograms for tracks */
+  /* array holding control histograms for tracks */
   TH1F *fTrackControlHistograms[LAST_ETRACK][LAST_EBEFOREAFTER];
   /* name of track control histograms */
   TString fTrackControlHistogramNames[LAST_ETRACK][LAST_EBEFOREAFTER][3] = {
@@ -196,7 +196,7 @@ private:
       {0., TMath::TwoPi()}, // PHI
       {-2., 2.}             // ETA
   };
-  /* array to hold control histograms for events */
+  /* array holding control histograms for events */
   TH1F *fEventControlHistograms[LAST_EEVENT][LAST_EBEFOREAFTER];
   /* name of event control histograms */
   TString fEventControlHistogramNames[LAST_ETRACK][LAST_EBEFOREAFTER][3] = {
@@ -252,6 +252,7 @@ private:
   TList *fFinalResultsList;
   TString fFinalResultsListName = "FinalResults";
 
+  /* array holding final result histograms */
   TH1F *fFinalResultHistograms[LAST_EFINAL];
   TString fFinalResultHistogramNames[LAST_EFINAL][3] = {
       // Name , Title, Name of Xaxis
@@ -263,7 +264,7 @@ private:
   Int_t fNbinsFinalResultHistogramDefaults[LAST_EFINAL] = {
       1, // PHIAVG
   };
-  Double_t fEdgeFinalResultHistograms[LAST_EFINAL][LAST_EMINMAX]; // min bin
+  Double_t fEdgeFinalResultHistograms[LAST_EFINAL][LAST_EMINMAX];
   /* default edges for track control histograms */
   Double_t fEdgesFinalResultHistogramsDefault[LAST_EFINAL][LAST_EMINMAX] = {
       // MIN MAX
