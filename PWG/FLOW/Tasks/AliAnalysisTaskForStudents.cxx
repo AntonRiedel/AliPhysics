@@ -47,8 +47,7 @@ ClassImp(AliAnalysisTaskForStudents)
       /* cuts */
       fCentralitySelCriterion("V0M"), fFilterbit(128),
       /* Final results */
-      fFinalResultsList(nullptr), fAveragePhiHist(nullptr),
-      fNbinsAveragePhi(1000), fMinBinAveragePhi(0.), fMaxBinAveragePhi(10.) {
+      fFinalResultsList(nullptr) {
   /* Constructor */
 
   AliDebug(2, "AliAnalysisTaskForStudents::AliAnalysisTaskForStudents(const "
@@ -56,7 +55,7 @@ ClassImp(AliAnalysisTaskForStudents)
 
   /* Base list */
   fHistList = new TList();
-  fHistList->SetName("outputStudentAnalysis");
+  fHistList->SetName(fHistListName);
   fHistList->SetOwner(kTRUE);
 
   /* Initialize all arrays */
@@ -89,8 +88,7 @@ AliAnalysisTaskForStudents::AliAnalysisTaskForStudents()
       /* cuts */
       fCentralitySelCriterion("V0M"), fFilterbit(128),
       /* Final results */
-      fFinalResultsList(nullptr), fAveragePhiHist(nullptr),
-      fNbinsAveragePhi(1000), fMinBinAveragePhi(0.), fMaxBinAveragePhi(10.) {
+      fFinalResultsList(nullptr) {
   /* Dummy constructor */
 
   this->InitializeArrays();
@@ -226,16 +224,16 @@ void AliAnalysisTaskForStudents::Terminate(Option_t *) {
   /* Accessing the merged output list for final compution or for off-line
    * computations (i.e. after merging)*/
 
-  fHistList = (TList *)GetOutputData(1);
+  /* fHistList = (TList *)GetOutputData(1); */
   if (!fHistList) {
-    std::cout << "fHistList not around?" << std::endl;
+    std::cout << __LINE__ << ": Did not get " << fHistListName << std::endl;
   }
 
   // Do some calculation in offline mode here:
 
   // ... your code for offline calculations ...
 
-  fAveragePhiHist->SetBinContent(
+  fFinalResultHistograms[PHIAVG]->SetBinContent(
       1, fTrackControlHistograms[PHI][AFTER]->GetMean());
 }
 
@@ -244,6 +242,7 @@ void AliAnalysisTaskForStudents::InitializeArrays() {
   InitializeArraysForTrackControlHistograms();
   InitializeArraysForEventControlHistograms();
   InitializeArraysForCuts();
+  InitializeArraysForFinalResultHistograms();
 }
 
 void AliAnalysisTaskForStudents::InitializeArraysForTrackControlHistograms() {
@@ -343,6 +342,33 @@ void AliAnalysisTaskForStudents::InitializeArraysForCuts() {
 }
 >>>>>>> Add InitializeArraysForCuts() method
 
+void AliAnalysisTaskForStudents::InitializeArraysForFinalResultHistograms() {
+  /* initialize array for final result histograms */
+  for (int final = 0; final < LAST_EFINAL; ++final) {
+    fFinalResultHistograms[final] = nullptr;
+  }
+
+  /* default number of bins for final result histograms */
+  Int_t NbinsFinalResultHistogramDefaults[LAST_EFINAL] = {
+      1, // PHIAVG
+  };
+
+  /* default edges for track control histograms */
+  Double_t EdgesFinalResultHistogramsDefault[LAST_EFINAL][LAST_EMINMAX] = {
+      // MIN MAX
+      {0., 1.}, // PHIAVG
+  };
+
+  /* initialize binning and edges for final result histograms */
+  for (int var = 0; var < LAST_EFINAL; ++var) {
+    fNbinsFinalResultHistograms[var] = NbinsFinalResultHistogramDefaults[var];
+    for (int mm = 0; mm < LAST_EMINMAX; ++mm) {
+      fEdgeFinalResultHistograms[var][mm] =
+          EdgesFinalResultHistogramsDefault[var][mm];
+    }
+  }
+}
+
 void AliAnalysisTaskForStudents::BookAndNestAllLists() {
   /* Book and nest all lists nested in the base list fHistList */
 
@@ -357,13 +383,13 @@ void AliAnalysisTaskForStudents::BookAndNestAllLists() {
 
   /* 1. Book and nest lists for control histograms: */
   fControlHistogramsList = new TList();
-  fControlHistogramsList->SetName("ControlHistograms");
+  fControlHistogramsList->SetName(fControlHistogramsListName);
   fControlHistogramsList->SetOwner(kTRUE);
   fHistList->Add(fControlHistogramsList);
 
   /* 2. Book and nest lists for final results: */
   fFinalResultsList = new TList();
-  fFinalResultsList->SetName("FinalResults");
+  fFinalResultsList->SetName(fFinalResultsListName);
   fFinalResultsList->SetOwner(kTRUE);
   fHistList->Add(fFinalResultsList);
 }
@@ -374,76 +400,35 @@ void AliAnalysisTaskForStudents::BookControlHistograms() {
   /* fill colors */
   Color_t fillColor[LAST_EBEFOREAFTER] = {kRed - 10, kGreen - 10};
 
-  /* name of track control histograms */
-  const char *TrackControlHistogramNames[LAST_ETRACK][LAST_EBEFOREAFTER][3] = {
-      {
-          // Name , Title, Name of Xaxis
-          {"fTrackControlHistograms[PT][BEFORE]", "pT, before cut",
-           "p_{T}"}, // BEFORE
-          {"fTrackControlHistograms[PT][AFTER]", "pT, after cut",
-           "p_{T}"}, // AFTER
-      },             // PT
-
-      {
-          {"fTrackControlHistograms[PHI][BEFORE]", "#varphi, before cut",
-           "#varphi"}, // BEFORE
-          {"fTrackControlHistograms[PHI][AFTER]", "#varphi, after cut",
-           "#varphi"}, // AFTER
-      },               // PHI
-      {
-          {"fTrackControlHistograms[ETA][BEFORE]", "#eta, before cut",
-           "#eta"}, // BEFORE
-          {"fTrackControlHistograms[ETA][AFTER]", "#eta, after cut",
-           "#eta"}, // AFTER
-      },            // ETA
-  };
-
   /* book track control histograms */
   for (int i = 0; i < LAST_ETRACK; ++i) {
     for (int j = 0; j < LAST_EBEFOREAFTER; ++j) {
       fTrackControlHistograms[i][j] = new TH1F(
-          TrackControlHistogramNames[i][j][0],
-          TrackControlHistogramNames[i][j][1], fNbinsTrackControlHistograms[i],
+          fTrackControlHistogramNames[i][j][0],
+          fTrackControlHistogramNames[i][j][1], fNbinsTrackControlHistograms[i],
           fEdgeTrackControlHistograms[i][MIN],
           fEdgeTrackControlHistograms[i][MAX]);
       fTrackControlHistograms[i][j]->SetStats(kFALSE);
       fTrackControlHistograms[i][j]->SetFillColor(fillColor[j]);
       fTrackControlHistograms[i][j]->GetXaxis()->SetTitle(
-          TrackControlHistogramNames[i][j][2]);
+          fTrackControlHistogramNames[i][j][2]);
       fControlHistogramsList->Add(fTrackControlHistograms[i][j]);
     }
   }
-
-  /* name of event control histograms */
-  const char *EventControlHistogramNames[LAST_ETRACK][LAST_EBEFOREAFTER][3] = {
-      {
-          // Name , Title, Name of Xaxis
-          {"fEventControlHistograms[CEN][BEFORE]", "centrality, before cut",
-           "Centrality Percentile"}, // BEFORE
-          {"fEventControlHistograms[CEN][AFTER]", "centrality, after cut",
-           "Centrality Percentile"}, // AFTER
-      },                             // CEN
-      {
-          {"fEventControlHistograms[MUL][BEFORE]", "multiplicity, before cut",
-           "M"}, // BEFORE
-          {"fEventControlHistograms[MUL][AFTER]", "multiplicity, after cut",
-           "M"}, // AFTER
-      },         // MUL
-  };
 
   /* book event control histograms */
   for (int var = 0; var < LAST_EEVENT; ++var) {
     for (int ba = 0; ba < LAST_EBEFOREAFTER; ++ba) {
       fEventControlHistograms[var][ba] =
-          new TH1F(EventControlHistogramNames[var][ba][0],
-                   EventControlHistogramNames[var][ba][1],
+          new TH1F(fEventControlHistogramNames[var][ba][0],
+                   fEventControlHistogramNames[var][ba][1],
                    fNbinsEventControlHistograms[var],
                    fEdgeEventControlHistograms[var][MIN],
                    fEdgeEventControlHistograms[var][MAX]);
       fEventControlHistograms[var][ba]->SetStats(kFALSE);
       fEventControlHistograms[var][ba]->SetFillColor(fillColor[ba]);
       fEventControlHistograms[var][ba]->GetXaxis()->SetTitle(
-          EventControlHistogramNames[var][ba][2]);
+          fEventControlHistogramNames[var][ba][2]);
       fControlHistogramsList->Add(fEventControlHistograms[var][ba]);
     }
   }
@@ -453,12 +438,19 @@ void AliAnalysisTaskForStudents::BookFinalResultsHistograms() {
 
   /* Book all histograms to hold the final results */
   Color_t colorFinalResult = kBlue - 10;
-  fAveragePhiHist =
-      new TH1F("fAveragePhiHist", "Average #varphi", fNbinsAveragePhi,
-               fMinBinAveragePhi, fMaxBinAveragePhi);
-  fAveragePhiHist->SetStats(kFALSE);
-  fAveragePhiHist->SetFillColor(colorFinalResult);
-  fFinalResultsList->Add(fAveragePhiHist);
+
+  /* book event control histograms */
+  for (int var = 0; var < LAST_EFINAL; ++var) {
+    fFinalResultHistograms[var] = new TH1F(
+        fFinalResultHistogramNames[var][0], fFinalResultHistogramNames[var][1],
+        fNbinsFinalResultHistograms[var], fEdgeFinalResultHistograms[var][MIN],
+        fEdgeFinalResultHistograms[var][MAX]);
+    fFinalResultHistograms[var]->SetStats(kFALSE);
+    fFinalResultHistograms[var]->SetFillColor(colorFinalResult);
+    fFinalResultHistograms[var]->GetXaxis()->SetTitle(
+        fFinalResultHistogramNames[var][2]);
+    fFinalResultsList->Add(fFinalResultHistograms[var]);
+  }
 }
 
 Bool_t AliAnalysisTaskForStudents::SurviveEventCut(AliVEvent *ave) {
@@ -562,99 +554,78 @@ Bool_t AliAnalysisTaskForStudents::SurviveTrackCut(AliAODTrack *aTrack) {
 }
 
 void AliAnalysisTaskForStudents::GetPointers(TList *histList) {
+  /* Initialize pointer for base list fHistList so we can initialize all other
+   * objects and call terminate off-line*/
 
-  TString sMethodName =
-      "void AliAnalysisTaskForStudents::GetPointers(TList *histList)";
-
-  /* Initialize pointer for base list fHistList and profile holding internal
-   * flags */
   fHistList = histList;
   if (!fHistList) {
-    Fatal(sMethodName.Data(), "fHistList is not around today...");
+    std::cout << __LINE__ << ": Did not get " << fHistListName << std::endl;
   }
 
+  /* initialize all other objects */
   this->GetPointersForControlHistograms();
   this->GetPointersForOutputHistograms();
 }
 
 void AliAnalysisTaskForStudents::GetPointersForControlHistograms() {
+  /* Get pointers for Control Histograms */
 
-  /* Get pointers for Control Histograms. */
-  TString sMethodName =
-      "void AliAnalysisTaskForStudents::GetPointersForControlHistograms()";
-
-  /* Get pointer for fControlHistograms: */
+  /* Get pointer for fControlHistograms */
   fControlHistogramsList =
-      dynamic_cast<TList *>(fHistList->FindObject("ControlHistograms"));
+      dynamic_cast<TList *>(fHistList->FindObject(fControlHistogramsListName));
   if (!fControlHistogramsList) {
-    Fatal(sMethodName.Data(), "fControlHistogramsList");
+    std::cout << __LINE__ << ": Did not get " << fControlHistogramsListName
+              << std::endl;
   }
 
-  /* /1* initalize all control histograms *1/ */
-  /* fPtHist_beforeCut = dynamic_cast<TH1F *>( */
-  /*     fControlHistogramsList->FindObject("fPtHist_beforeCut")); */
-  /* if (!fPtHist_beforeCut) { */
-  /*   Fatal(sMethodName.Data(), "fPtHist_beforeCut"); */
-  /* } */
-  /* fPtHist_afterCut = dynamic_cast<TH1F *>( */
-  /*     fControlHistogramsList->FindObject("fPtHist_afterCut")); */
-  /* if (!fPtHist_afterCut) { */
-  /*   Fatal(sMethodName.Data(), "fPtHist_afterCut"); */
-  /* } */
-  /* fEtaHist_beforeCut = dynamic_cast<TH1F *>( */
-  /*     fControlHistogramsList->FindObject("fEtaHist_beforeCut")); */
-  /* if (!fEtaHist_beforeCut) { */
-  /*   Fatal(sMethodName.Data(), "fEtaHist_beforeCut"); */
-  /* } */
-  /* fEtaHist_afterCut = dynamic_cast<TH1F *>( */
-  /*     fControlHistogramsList->FindObject("fEtaHist_afterCut")); */
-  /* if (!fEtaHist_afterCut) { */
-  /*   Fatal(sMethodName.Data(), "fEtaHist_afterCut"); */
-  /* } */
-  /* fPhiHist_beforeCut = dynamic_cast<TH1F *>( */
-  /*     fControlHistogramsList->FindObject("fPhiHist_beforeCut")); */
-  /* if (!fPhiHist_beforeCut) { */
-  /*   Fatal(sMethodName.Data(), "fPhiHist_beforeCut"); */
-  /* } */
-  /* fPhiHist_afterCut = dynamic_cast<TH1F *>( */
-  /*     fControlHistogramsList->FindObject("fPhiHist_afterCut")); */
-  /* if (!fPhiHist_afterCut) { */
-  /*   Fatal(sMethodName.Data(), "fPhiHist_afterCut"); */
-  /* } */
-  /* fMulHist_beforeCut = dynamic_cast<TH1F *>( */
-  /*     fControlHistogramsList->FindObject("fMulHist_beforeCut")); */
-  /* if (!fMulHist_beforeCut) { */
-  /*   Fatal(sMethodName.Data(), "fMulHist"); */
-  /* } */
-  /* fMulHist_afterCut = dynamic_cast<TH1F *>( */
-  /*     fControlHistogramsList->FindObject("fMulHist_afterCut")); */
-  /* if (!fMulHist_afterCut) { */
-  /*   Fatal(sMethodName.Data(), "fMulHist"); */
-  /* } */
-  /* Set again all flags: */
-  /* fFillBuffers = (Bool_t)fBuffersFlagsPro->GetBinContent(1); */
-  /* fMaxBuffer = fBuffersFlagsPro->GetBinContent(2); */
+  /* get all pointers for track control histograms */
+  for (int var = 0; var < LAST_ETRACK; ++var) {
+    for (int ba = 0; ba < LAST_EBEFOREAFTER; ++ba) {
+      fTrackControlHistograms[var][ba] =
+          dynamic_cast<TH1F *>(fControlHistogramsList->FindObject(
+              fTrackControlHistogramNames[var][ba][0]));
+      if (!fTrackControlHistograms[var][ba]) {
+        std::cout << __LINE__ << ": Did not get "
+                  << fTrackControlHistogramNames[var][ba][0] << std::endl;
+      }
+    }
+  }
+
+  /* get all pointers for event control histograms */
+  for (int var = 0; var < LAST_EEVENT; ++var) {
+    for (int ba = 0; ba < LAST_EBEFOREAFTER; ++ba) {
+      fEventControlHistograms[var][ba] =
+          dynamic_cast<TH1F *>(fControlHistogramsList->FindObject(
+              fEventControlHistogramNames[var][ba][0]));
+      if (!fEventControlHistograms[var][ba]) {
+        std::cout << __LINE__ << ": Did not get "
+                  << fEventControlHistogramNames[var][ba][0] << std::endl;
+      }
+    }
+  }
 }
 
 void AliAnalysisTaskForStudents::GetPointersForOutputHistograms() {
-  /* Get pointers for Output Histograms. */
+  /* Get pointers for Output Histograms */
 
-  TString sMethodName =
-      "void AliAnalysisTaskForStudents::GetPointersForOutputHistograms()";
-
-  /* Get pointer for fFinalResultsList: */
+  /* Get pointer for fFinalResultsList */
   fFinalResultsList =
-      dynamic_cast<TList *>(fHistList->FindObject("FinalResults"));
-  if (!fControlHistogramsList) {
-    Fatal(sMethodName.Data(), "fFinalResultsList");
+      dynamic_cast<TList *>(fHistList->FindObject(fFinalResultsListName));
+  if (!fFinalResultsList) {
+    std::cout << __LINE__ << ": Did not get " << fFinalResultsListName
+              << std::endl;
   }
 
-  /* get pointer for output histograms */
-  fAveragePhiHist =
-      dynamic_cast<TH1F *>(fFinalResultsList->FindObject("fAveragePhiHist"));
-  if (!fAveragePhiHist) {
-    Fatal(sMethodName.Data(), "fAveragePhiHist");
+  /* get all pointers for final result histograms */
+  for (int var = 0; var < LAST_EFINAL; ++var) {
+    fFinalResultHistograms[var] = dynamic_cast<TH1F *>(
+        fFinalResultsList->FindObject(fFinalResultHistogramNames[var][0]));
+    if (!fTrackControlHistograms[var]) {
+      std::cout << __LINE__ << ": Did not get "
+                << fFinalResultHistogramNames[var][0] << std::endl;
+    }
   }
+
   /* Set again all flags: */
   /* fFillBuffers = (Bool_t)fBuffersFlagsPro->GetBinContent(1); */
   /* fMaxBuffer = fBuffersFlagsPro->GetBinContent(2); */
