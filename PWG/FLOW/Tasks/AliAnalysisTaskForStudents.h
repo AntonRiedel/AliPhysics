@@ -2,7 +2,7 @@
  * File              : AliAnalysisTaskForStudents.h
  * Author            : Anton Riedel <anton.riedel@tum.de>
  * Date              : 07.05.2021
- * Last Modified Date: 27.05.2021
+ * Last Modified Date: 29.05.2021
  * Last Modified By  : Anton Riedel <anton.riedel@tum.de>
  */
 
@@ -28,10 +28,12 @@
 /* enumerations */
 enum eEvent { CEN, MUL, LAST_EEVENT };
 enum eTrack { PT, PHI, ETA, LAST_ETRACK };
+enum eFinal { PHIAVG, LAST_EFINAL };
+enum eBins { BIN, LEDGE, UEDGE, LAST_EBINS };
+enum eName { NAME, TITLE, XAXIS, LAST_ENAME };
 enum eBeforeAfter { BEFORE, AFTER, LAST_EBEFOREAFTER };
 enum eMinMax { MIN, MAX, LAST_EMINMAX };
 enum eXYZ { X, Y, Z, LAST_EXYZ };
-enum eFinal { PHIAVG, LAST_EFINAL };
 
 class AliAnalysisTaskForStudents : public AliAnalysisTaskSE {
 public:
@@ -75,37 +77,37 @@ public:
   TList *GetFinalResultsList() const { return this->fFinalResultsList; }
 
   void SetPtBinning(Int_t nbins, Double_t min, Double_t max) {
-    this->fNbinsTrackControlHistograms[PT] = nbins;
-    this->fEdgeTrackControlHistograms[PT][MIN] = min;
-    this->fEdgeTrackControlHistograms[PT][MAX] = max;
+    this->fBinsTrackControlHistograms[PT][BIN] = nbins;
+    this->fBinsTrackControlHistograms[PT][LEDGE] = min;
+    this->fBinsTrackControlHistograms[PT][UEDGE] = max;
   };
   void SetPhiBinning(Int_t nbins, Double_t min, Double_t max) {
-    this->fNbinsTrackControlHistograms[PHI] = nbins;
-    this->fEdgeTrackControlHistograms[PHI][MIN] = min;
-    this->fEdgeTrackControlHistograms[PHI][MAX] = max;
+    this->fBinsTrackControlHistograms[PHI][BIN] = nbins;
+    this->fBinsTrackControlHistograms[PHI][LEDGE] = min;
+    this->fBinsTrackControlHistograms[PHI][UEDGE] = max;
   };
   void SetEtaBinning(Int_t nbins, Double_t min, Double_t max) {
-    this->fNbinsTrackControlHistograms[ETA] = nbins;
-    this->fEdgeTrackControlHistograms[ETA][MIN] = min;
-    this->fEdgeTrackControlHistograms[ETA][MAX] = max;
+    this->fBinsTrackControlHistograms[ETA][BIN] = nbins;
+    this->fBinsTrackControlHistograms[ETA][LEDGE] = min;
+    this->fBinsTrackControlHistograms[ETA][UEDGE] = max;
   };
 
   void SetCenBinning(Int_t nbins, Double_t min, Double_t max) {
-    this->fNbinsEventControlHistograms[CEN] = nbins;
-    this->fEdgeEventControlHistograms[CEN][MIN] = min;
-    this->fEdgeEventControlHistograms[CEN][MAX] = max;
+    this->fBinsEventControlHistograms[CEN][BIN] = nbins;
+    this->fBinsEventControlHistograms[CEN][LEDGE] = min;
+    this->fBinsEventControlHistograms[CEN][UEDGE] = max;
   };
 
   void SetMulBinning(Int_t nbins, Double_t min, Double_t max) {
-    this->fNbinsEventControlHistograms[MUL] = nbins;
-    this->fEdgeEventControlHistograms[MUL][MIN] = min;
-    this->fEdgeEventControlHistograms[MUL][MAX] = max;
+    this->fBinsEventControlHistograms[MUL][BIN] = nbins;
+    this->fBinsEventControlHistograms[MUL][LEDGE] = min;
+    this->fBinsEventControlHistograms[MUL][UEDGE] = max;
   };
 
   void SetAveragePhiBinning(Int_t nbins, Double_t min, Double_t max) {
-    this->fNbinsFinalResultHistograms[PHIAVG] = nbins;
-    this->fEdgeFinalResultHistograms[PHIAVG][MIN] = min;
-    this->fEdgeFinalResultHistograms[PHIAVG][MAX] = max;
+    this->fBinsEventControlHistograms[PHIAVG][BIN] = nbins;
+    this->fBinsEventControlHistograms[PHIAVG][LEDGE] = min;
+    this->fBinsEventControlHistograms[PHIAVG][UEDGE] = max;
   };
 
   void SetCentralitySelCriterion(TString SelCriterion) {
@@ -151,125 +153,37 @@ private:
 
   /* base list holding all output object (a.k.a. grandmother of all lists) */
   TList *fHistList;
-  TString fHistListName = "outputStudentAnalysis";
+  TString fHistListName;
 
   /* control histograms */
   TList *fControlHistogramsList;
-  TString fControlHistogramsListName = "ControlHistograms";
+  TString fControlHistogramsListName;
   /* array holding control histograms for tracks */
   TH1F *fTrackControlHistograms[LAST_ETRACK][LAST_EBEFOREAFTER];
   /* name of track control histograms */
-  TString fTrackControlHistogramNames[LAST_ETRACK][LAST_EBEFOREAFTER][3] = {
-      {
-          // Name, Title, Name of Xaxis
-          {"fTrackControlHistograms[PT][BEFORE]", "pT, before cut",
-           "p_{T}"}, // BEFORE
-          {"fTrackControlHistograms[PT][AFTER]", "pT, after cut",
-           "p_{T}"}, // AFTER
-      },             // PT
-
-      {
-          {"fTrackControlHistograms[PHI][BEFORE]", "#varphi, before cut",
-           "#varphi"}, // BEFORE
-          {"fTrackControlHistograms[PHI][AFTER]", "#varphi, after cut",
-           "#varphi"}, // AFTER
-      },               // PHI
-      {
-          {"fTrackControlHistograms[ETA][BEFORE]", "#eta, before cut",
-           "#eta"}, // BEFORE
-          {"fTrackControlHistograms[ETA][AFTER]", "#eta, after cut",
-           "#eta"}, // AFTER
-      },            // ETA
-  };
-  Int_t fNbinsTrackControlHistograms[LAST_ETRACK];
-  /* default number of bins for track control histograms*/
-  Int_t fNbinsTrackControlHistogramsDefault[LAST_ETRACK] = {
-      100, // PT
-      360, // PHI
-      200, // ETA
-  };
-  Double_t fEdgeTrackControlHistograms[LAST_ETRACK][LAST_EMINMAX];
-  /* default edges for track control histograms */
-  Double_t fEdgesTrackControlHistogramDefaults[LAST_ETRACK][LAST_EMINMAX] = {
-      // MIN MAX
-      {0., 10.},            // PT
-      {0., TMath::TwoPi()}, // PHI
-      {-2., 2.}             // ETA
-  };
+  TString fTrackControlHistogramNames[LAST_ETRACK][LAST_EBEFOREAFTER]
+                                     [LAST_ENAME];
+  Double_t fBinsTrackControlHistograms[LAST_ETRACK][LAST_EBINS];
   /* array holding control histograms for events */
   TH1F *fEventControlHistograms[LAST_EEVENT][LAST_EBEFOREAFTER];
-  /* name of event control histograms */
-  TString fEventControlHistogramNames[LAST_ETRACK][LAST_EBEFOREAFTER][3] = {
-      {
-          // Name , Title, Name of Xaxis
-          {"fEventControlHistograms[CEN][BEFORE]", "centrality, before cut",
-           "Centrality Percentile"}, // BEFORE
-          {"fEventControlHistograms[CEN][AFTER]", "centrality, after cut",
-           "Centrality Percentile"}, // AFTER
-      },                             // CEN
-      {
-          {"fEventControlHistograms[MUL][BEFORE]", "multiplicity, before cut",
-           "M"}, // BEFORE
-          {"fEventControlHistograms[MUL][AFTER]", "multiplicity, after cut",
-           "M"}, // AFTER
-      },         // MUL
-  };
-  Int_t fNbinsEventControlHistograms[LAST_EEVENT];
-  /* default number of bins for event control histograms */
-  Int_t fNbinsEventControlHistogramDefaults[LAST_EEVENT] = {
-      10,   // CEN
-      1000, // MUL
-  };
-  Double_t fEdgeEventControlHistograms[LAST_EEVENT][LAST_EMINMAX];
-  /* default edges for track control histograms */
-  Double_t fEdgesEventControlHistogramsDefault[LAST_EEVENT][LAST_EMINMAX] = {
-      // MIN MAX
-      {0., 100},    // CEN
-      {0., 20000.}, // MUL
-  };
+  TString fEventControlHistogramNames[LAST_EEVENT][LAST_EBEFOREAFTER]
+                                     [LAST_ENAME];
+  Double_t fBinsEventControlHistograms[LAST_EEVENT][LAST_EBINS];
 
   /* cuts */
   TString fCentralitySelCriterion;
   Double_t fTrackCuts[LAST_ETRACK][LAST_EMINMAX];
-  /* default track cuts */
-  Double_t fTrackCutsDefault[LAST_ETRACK][LAST_EMINMAX] = {
-      // MIN MAX
-      {0., 5.},             // PT
-      {0., TMath::TwoPi()}, // PHI
-      {-3., 3.},            // ETA
-  };
   Double_t fPrimaryVertexCuts[LAST_EXYZ][LAST_EMINMAX];
-  /* default primary vertex cuts */
-  Double_t fPrimaryVertexCutsDefault[LAST_EXYZ][LAST_EMINMAX] = {
-      // MIN MAX
-      {-10., 10.}, // X
-      {-10., 10.}, // Y
-      {-10., 10.}, // Z
-  };
   Int_t fFilterbit;
 
   /* Final results */
   TList *fFinalResultsList;
-  TString fFinalResultsListName = "FinalResults";
+  TString fFinalResultsListName;
 
   /* array holding final result histograms */
   TH1F *fFinalResultHistograms[LAST_EFINAL];
-  TString fFinalResultHistogramNames[LAST_EFINAL][3] = {
-      // Name , Title, Name of Xaxis
-      {"fFinalResultHistograms[PHIAVG]", "Average #varphi",
-       "#varphi"}, // PHIAVG
-  };
-  Int_t fNbinsFinalResultHistograms[LAST_EFINAL];
-  /* default number of bins for final result histograms */
-  Int_t fNbinsFinalResultHistogramDefaults[LAST_EFINAL] = {
-      1, // PHIAVG
-  };
-  Double_t fEdgeFinalResultHistograms[LAST_EFINAL][LAST_EMINMAX];
-  /* default edges for track control histograms */
-  Double_t fEdgesFinalResultHistogramsDefault[LAST_EFINAL][LAST_EMINMAX] = {
-      // MIN MAX
-      {0., 1.}, // PHIAVG
-  };
+  TString fFinalResultHistogramNames[LAST_EFINAL][LAST_ENAME];
+  Double_t fBinsFinalResultHistograms[LAST_EFINAL][LAST_EBINS];
 
   // Increase this counter in each new version:
   ClassDef(AliAnalysisTaskForStudents, 3);
