@@ -21,19 +21,14 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/**************************************
- * template class for student projects *
- **************************************/
-
 #include "AliAODEvent.h"
 #include "AliAODInputHandler.h"
 #include "AliAnalysisTaskForStudents.h"
 #include "AliLog.h"
 #include "AliMultSelection.h"
-#include "Riostream.h"
 #include "TColor.h"
 #include "TFile.h"
-#include <ostream>
+#include <cstdlib>
 
 ClassImp(AliAnalysisTaskForStudents)
 
@@ -48,7 +43,16 @@ ClassImp(AliAnalysisTaskForStudents)
       /* cuts */
       fCentralitySelCriterion("V0M"), fFilterbit(128),
       /* Final results */
-      fFinalResultsList(nullptr), fFinalResultsListName("FinalResults") {
+      fFinalResultsList(nullptr), fFinalResultsListName("FinalResults"),
+      /* flags for MC analysis */
+      fMCAnalysisList(nullptr), fMCAnalysisListName("MCAnalysis"),
+      fMCAnalaysis(kFALSE), fMCRNG(nullptr), fMCRNGSeed(0), fMCPdf(nullptr),
+      fMCPdfName("pdf"), fMCFlowHarmonics(nullptr), fMCNumberOfEvents(10),
+      fMCNumberOfParticlesPerEventFluctuations(kFALSE),
+      fMCNumberOfParticlesPerEvent(10),
+      /* qvectors */
+      fQvectorList(nullptr), fMaxHarmonic(kMaxHarmonic),
+      fMaxCorrelator(kMaxCorrelator) {
   /* Constructor */
 
   AliDebug(2, "AliAnalysisTaskForStudents::AliAnalysisTaskForStudents(const "
@@ -90,9 +94,17 @@ AliAnalysisTaskForStudents::AliAnalysisTaskForStudents()
       /* cuts */
       fCentralitySelCriterion("V0M"), fFilterbit(128),
       /* Final results */
-      fFinalResultsList(nullptr), fFinalResultsListName("FinalResults") {
+      fFinalResultsList(nullptr), fFinalResultsListName("FinalResults"),
+      /* flags for MC analysis */
+      fMCAnalysisList(nullptr), fMCAnalysisListName("MCAnalysis"),
+      fMCAnalaysis(kFALSE), fMCRNG(nullptr), fMCRNGSeed(0), fMCPdf(nullptr),
+      fMCPdfName("pdf"), fMCFlowHarmonics(nullptr), fMCNumberOfEvents(10),
+      fMCNumberOfParticlesPerEventFluctuations(kFALSE),
+      fMCNumberOfParticlesPerEvent(10),
+      /* qvectors */
+      fQvectorList(nullptr), fMaxHarmonic(kMaxHarmonic),
+      fMaxCorrelator(kMaxCorrelator) {
   /* Dummy constructor */
-
   /* initialze arrays in dummy constructor !!!! */
   this->InitializeArrays();
 
@@ -106,7 +118,7 @@ AliAnalysisTaskForStudents::~AliAnalysisTaskForStudents() {
    * delete all other objects associative with this object */
   if (fHistList)
     delete fHistList;
-}
+};
 
 void AliAnalysisTaskForStudents::UserCreateOutputObjects() {
   /* Called at every worker node to initialize. */
@@ -134,14 +146,28 @@ void AliAnalysisTaskForStudents::UserCreateOutputObjects() {
 }
 
 void AliAnalysisTaskForStudents::UserExec(Option_t *) {
+  /* main method called for analysis */
+  /* different modes of analysis possible */
+
+  /* MC analysis */
+  if (fMCAnalaysis) {
+    MCOnTheFlyExec();
+    return;
+  }
+
+  /* if no other modes are specified, assume analysis over AOD files */
+  AODExec();
+}
+
+void AliAnalysisTaskForStudents::AODExec() {
   /* Main loop (called for each event) */
   /* general strategy */
   /* 1. Get pointer to AOD event */
   /* 2. Start analysis over AODs */
   /* 3. Reset event-by-event objects */
   /* 4. PostData */
-
   /* 1. Get pointer to AOD event */
+
   AliAODEvent *aAOD = dynamic_cast<AliAODEvent *>(InputEvent()); // from TaskSE
   if (!aAOD) {
     return;
@@ -230,6 +256,7 @@ void AliAnalysisTaskForStudents::Terminate(Option_t *) {
   /* fHistList = (TList *)GetOutputData(1); */
   if (!fHistList) {
     std::cout << __LINE__ << ": Did not get " << fHistListName << std::endl;
+    Fatal("Terminate", "Invalid Pointer to fHistList");
   }
 
   // Do some calculation in offline mode here:
@@ -241,12 +268,93 @@ void AliAnalysisTaskForStudents::Terminate(Option_t *) {
       1, fTrackControlHistograms[PHI][AFTER]->GetMean());
 }
 
+void AliAnalysisTaskForStudents::MCOnTheFlyExec() {
+  /* call this method for monte carlo analysis */
+
+  /* create RNG */
+  fMCRNG = new TRandom3(fMCRNGSeed);
+
+  /* set flow harmonics for MC analysis */
+  MCPdfFlowHarmonicsSetup();
+  Double_t Phi = 0.;
+
+  /* loop over all events */
+  for (int i = 0; i < fMCNumberOfEvents; ++i) {
+    /* set symmetry planes for MC analysis */
+    MCPdfSymmetryPlanesSetup();
+    /* loop over all particles in an event */
+    for (int i = 0; i < GetMCNumberOfParticlesPerEvent(); ++i) {
+      Phi = fMCPdf->GetRandom();
+      fMCControlHistograms[MCPHI]->Fill(Phi);
+      std::cout << Phi << std::endl;
+      /* std::cout << "pdf: " << fMCPdf->GetRandom() << std::endl; */
+      /* std::cout << "pdf: " << fMCPdf->GetRandom(fMCRNG) << std::endl; */
+    }
+  }
+
+  delete fMCPdf;
+  delete fMCRNG;
+}
+
+void AliAnalysisTaskForStudents::MCPdfFlowHarmonicsSetup() {
+  /* base setup the pdf for MC analysis with flow harmonics */
+  /* 1. generate formula, i.e. fourier series */
+  /* 2. set flow harmonics as parameters as given by fMCFlowHarmonics */
+  /* 3. leave symmetry planes and set them later on a event by event basis */
+
+  /* protect at some point if fMCFlowHarmonics is empty */
+  if (!fMCFlowHarmonics) {
+    std::cout << __LINE__ << ": no flow harmonics defined" << std::endl;
+    Fatal("MCPdfFlowHarmonicsSetup", "Invalid Pointer");
+  }
+
+  /* generate formula */
+  TString Formula = "";
+  for (int i = 1; i <= fMCFlowHarmonics->GetSize(); ++i) {
+    Formula += Form("[%d]*TMath::Cos(%d*(x-[%d]))", 2 * i - 1, i, 2 * i);
+    if (i < fMCFlowHarmonics->GetSize()) {
+      Formula += "+";
+    }
+  }
+  Formula = "(1+2*(" + Formula + "))/TMath::TwoPi()";
+
+  /* create TF1 object */
+  fMCPdf = new TF1(fMCPdfName, Formula, 0., TMath::TwoPi());
+
+  /* set flow harmonics */
+  /* flow harmonics are parameters with odd index */
+  for (int i = 0; i < fMCFlowHarmonics->GetSize(); ++i) {
+    fMCPdf->SetParameter(2 * i + 1, fMCFlowHarmonics->GetAt(i));
+  }
+}
+
+void AliAnalysisTaskForStudents::MCPdfSymmetryPlanesSetup() {
+  /* set symmetry planes randomly on a event by event basis */
+  Double_t Psi = 0;
+  for (int i = 0; i < fMCFlowHarmonics->GetSize(); ++i) {
+    Psi = fMCRNG->Uniform(0., TMath::TwoPi());
+    fMCControlHistograms[MCPSI]->Fill(Psi);
+    fMCPdf->SetParameter(2 * (i + 1), Psi);
+  }
+}
+
+Int_t AliAnalysisTaskForStudents::GetMCNumberOfParticlesPerEvent() {
+
+  if (!fMCNumberOfParticlesPerEventFluctuations) {
+    return fMCNumberOfParticlesPerEvent;
+  }
+
+  return fMCRNG->Uniform(fMCNumberOfParticlesPerEventRange[MIN],
+                         fMCNumberOfParticlesPerEventRange[MAX]);
+};
+
 void AliAnalysisTaskForStudents::InitializeArrays() {
   /* Initialize all data members which are arrays in this method */
   InitializeArraysForTrackControlHistograms();
   InitializeArraysForEventControlHistograms();
   InitializeArraysForCuts();
   InitializeArraysForFinalResultHistograms();
+  InitializeArraysForMCAnalysis();
 }
 
 void AliAnalysisTaskForStudents::InitializeArraysForTrackControlHistograms() {
@@ -287,7 +395,6 @@ void AliAnalysisTaskForStudents::InitializeArraysForTrackControlHistograms() {
       for (int name = 0; name < LAST_ENAME; ++name) {
         fTrackControlHistogramNames[var][ba][name] =
             TrackControlHistogramNames[var][ba][name];
-        std::cout << TrackControlHistogramNames[var][ba][name] << std::endl;
       }
     }
   }
@@ -339,7 +446,6 @@ void AliAnalysisTaskForStudents::InitializeArraysForEventControlHistograms() {
       for (int name = 0; name < LAST_ENAME; ++name) {
         fEventControlHistogramNames[var][ba][name] =
             EventControlHistogramNames[var][ba][name];
-        std::cout << EventControlHistogramNames[var][ba][name] << std::endl;
       }
     }
   }
@@ -426,6 +532,59 @@ void AliAnalysisTaskForStudents::InitializeArraysForFinalResultHistograms() {
   }
 }
 
+void AliAnalysisTaskForStudents::InitializeArraysForMCAnalysis() {
+  /* initialize arrays for MC analysis */
+
+  /* range of pdf */
+  Double_t MCPdfRangeDefaults[LAST_EMINMAX] = {0.0, TMath::TwoPi()};
+  for (int i = 0; i < LAST_EMINMAX; ++i) {
+    fMCPdfRange[i] = MCPdfRangeDefaults[i];
+  }
+
+  /* range of fluctuations of number of particles produces per event */
+  Int_t MCNumberOfParticlesPerEventRangeDefaults[LAST_EMINMAX] = {10, 20};
+  for (int i = 0; i < LAST_EMINMAX; ++i) {
+    fMCNumberOfParticlesPerEventRange[i] =
+        MCNumberOfParticlesPerEventRangeDefaults[i];
+  }
+
+  /* initialize array for MC control histograms */
+  for (int var = 0; var < LAST_EMC; ++var) {
+    fMCControlHistograms[var] = nullptr;
+  }
+
+  TString MCControlHistogramNames[LAST_EMC][LAST_ENAME] = {
+      // NAME, TITLE, XAXIS
+      {"MCControlhistograms[MCPHI]", "#varphi", "#varphi"},    // MCPHI
+      {"MCControlhistograms[MCPSI]", "#Psi", "#Psi"},          // MCPSI
+      {"MCControlhistograms[MCNUM]", "Number of events", "N"}, // MCNUM
+      {"MCControlhistograms[MCMUL]", "Multiplicity", "M"},     // MCPHI
+  };
+
+  /* initialize names for event control histograms */
+  for (int var = 0; var < LAST_EMC; ++var) {
+    for (int name = 0; name < LAST_ENAME; ++name) {
+      fMCControlHistogramNames[var][name] = MCControlHistogramNames[var][name];
+    }
+  }
+
+  /* default bins for MC control histograms */
+  Double_t BinsMCControlHistogramDefaults[LAST_EMC][LAST_EBINS] = {
+      // BIN LEDGE UEDGE
+      {360., 0., TMath::TwoPi()}, // MCPHI
+      {360., 0., TMath::TwoPi()}, // MCPSI
+      {500., 0., 5000.},          // MCNUM
+      {500., 0., 5000.},          // MCPHI
+  };
+  /* initialize array of bins and edges for MC control histograms */
+  for (int var = 0; var < LAST_EFINAL; ++var) {
+    for (int bin = 0; bin < LAST_EBINS; ++bin) {
+      fBinsFinalResultHistograms[var][bin] =
+          BinsMCControlHistogramDefaults[var][bin];
+    }
+  }
+}
+
 void AliAnalysisTaskForStudents::BookAndNestAllLists() {
   /* Book and nest all lists nested in the base list fHistList */
 
@@ -434,6 +593,7 @@ void AliAnalysisTaskForStudents::BookAndNestAllLists() {
 
   if (!fHistList) {
     std::cout << __LINE__ << ": Did not get " << fHistListName << std::endl;
+    Fatal("BookAndNestAllLists", "Invalid Pointer");
   }
 
   /* 1. Book and nest lists for control histograms: */
@@ -447,6 +607,12 @@ void AliAnalysisTaskForStudents::BookAndNestAllLists() {
   fFinalResultsList->SetName(fFinalResultsListName);
   fFinalResultsList->SetOwner(kTRUE);
   fHistList->Add(fFinalResultsList);
+
+  /* 3. Book and nest lists for MC Analsysis */
+  fMCAnalysisList = new TList();
+  fMCAnalysisList->SetName(fMCAnalysisListName);
+  fMCAnalysisList->SetOwner(kTRUE);
+  fHistList->Add(fMCAnalysisList);
 }
 
 void AliAnalysisTaskForStudents::BookControlHistograms() {
@@ -487,6 +653,19 @@ void AliAnalysisTaskForStudents::BookControlHistograms() {
           fEventControlHistogramNames[var][ba][2]);
       fControlHistogramsList->Add(fEventControlHistograms[var][ba]);
     }
+  }
+
+  /* book MC control histograms */
+  for (int var = 0; var < LAST_EMC; ++var) {
+    fMCControlHistograms[var] = new TH1F(
+        fMCControlHistogramNames[var][0], fMCControlHistogramNames[var][1],
+        fMCBinsControlHistogram[var][BIN], fMCBinsControlHistogram[var][LEDGE],
+        fMCBinsControlHistogram[var][UEDGE]);
+    fMCControlHistograms[var]->SetStats(kFALSE);
+    fMCControlHistograms[var]->SetFillColor(fillColor[0]);
+    fMCControlHistograms[var]->GetXaxis()->SetTitle(
+        fMCControlHistogramNames[var][2]);
+    fControlHistogramsList->Add(fMCControlHistograms[var]);
   }
 }
 
@@ -617,6 +796,7 @@ void AliAnalysisTaskForStudents::GetPointers(TList *histList) {
   fHistList = histList;
   if (!fHistList) {
     std::cout << __LINE__ << ": Did not get " << fHistListName << std::endl;
+    Fatal("GetPointers", "Invalid Pointer");
   }
 
   /* initialize all other objects */
@@ -633,6 +813,7 @@ void AliAnalysisTaskForStudents::GetPointersForControlHistograms() {
   if (!fControlHistogramsList) {
     std::cout << __LINE__ << ": Did not get " << fControlHistogramsListName
               << std::endl;
+    Fatal("GetPointersForControlHistograms", "Invalid Pointer");
   }
 
   /* get all pointers for track control histograms */
@@ -644,6 +825,7 @@ void AliAnalysisTaskForStudents::GetPointersForControlHistograms() {
       if (!fTrackControlHistograms[var][ba]) {
         std::cout << __LINE__ << ": Did not get "
                   << fTrackControlHistogramNames[var][ba][0] << std::endl;
+        Fatal("GetPointersForControlHistograms", "Invalid Pointer");
       }
     }
   }
@@ -657,6 +839,7 @@ void AliAnalysisTaskForStudents::GetPointersForControlHistograms() {
       if (!fEventControlHistograms[var][ba]) {
         std::cout << __LINE__ << ": Did not get "
                   << fEventControlHistogramNames[var][ba][0] << std::endl;
+        Fatal("GetPointersForControlHistograms", "Invalid Pointer");
       }
     }
   }
@@ -671,6 +854,7 @@ void AliAnalysisTaskForStudents::GetPointersForOutputHistograms() {
   if (!fFinalResultsList) {
     std::cout << __LINE__ << ": Did not get " << fFinalResultsListName
               << std::endl;
+    Fatal("GetPointersForOutputHistograms", "Invalid Pointer");
   }
 
   /* get all pointers for final result histograms */
@@ -680,6 +864,7 @@ void AliAnalysisTaskForStudents::GetPointersForOutputHistograms() {
     if (!fTrackControlHistograms[var]) {
       std::cout << __LINE__ << ": Did not get "
                 << fFinalResultHistogramNames[var][0] << std::endl;
+      Fatal("GetPointersForOutputHistograms", "Invalid Pointer");
     }
   }
 
@@ -687,3 +872,12 @@ void AliAnalysisTaskForStudents::GetPointersForOutputHistograms() {
   /* fFillBuffers = (Bool_t)fBuffersFlagsPro->GetBinContent(1); */
   /* fMaxBuffer = fBuffersFlagsPro->GetBinContent(2); */
 }
+
+/* TComplex Q(Int_t n, Int_t p) */
+/* { */
+/*  // Using the fact that Q{-n,p} = Q{n,p}^*. */
+
+/*  if(n>=0){return Qvector[n][p];} */
+/*  return TComplex::Conjugate(Qvector[-n][p]); */
+
+/* } */

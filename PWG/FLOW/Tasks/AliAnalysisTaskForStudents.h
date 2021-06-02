@@ -2,7 +2,7 @@
  * File              : AliAnalysisTaskForStudents.h
  * Author            : Anton Riedel <anton.riedel@tum.de>
  * Date              : 07.05.2021
- * Last Modified Date: 29.05.2021
+ * Last Modified Date: 02.06.2021
  * Last Modified By  : Anton Riedel <anton.riedel@tum.de>
  */
 
@@ -12,10 +12,6 @@
  * $Id$
  */
 
-/**************************************
- * template class for student projects *
- **************************************/
-
 #ifndef ALIANALYSISTASKFORSTUDENTS_H
 #define ALIANALYSISTASKFORSTUDENTS_H
 
@@ -23,11 +19,23 @@
 #include "AliAODTrack.h"
 #include "AliAnalysisTaskSE.h"
 #include "AliVEvent.h"
+#include "Riostream.h"
+#include "TComplex.h"
+#include "TDataType.h"
+#include "TF1.h"
 #include "TH1F.h"
+#include "TProfile.h"
+#include "TRandom3.h"
+#include "TString.h"
+
+/* global constants */
+const Int_t kMaxHarmonic = 6;
+const Int_t kMaxCorrelator = 8;
 
 /* enumerations */
 enum eEvent { CEN, MUL, LAST_EEVENT };
 enum eTrack { PT, PHI, ETA, LAST_ETRACK };
+enum eMC { MCPHI, MCPSI, MCNUM, MCMUL, LAST_EMC };
 enum eFinal { PHIAVG, LAST_EFINAL };
 enum eBins { BIN, LEDGE, UEDGE, LAST_EBINS };
 enum eName { NAME, TITLE, XAXIS, LAST_ENAME };
@@ -51,13 +59,18 @@ public:
   virtual void InitializeArraysForEventControlHistograms();
   virtual void InitializeArraysForCuts();
   virtual void InitializeArraysForFinalResultHistograms();
+  virtual void InitializeArraysForMCAnalysis();
 
   /* Methods called in UserCreateOutputObjects(): */
   virtual void BookAndNestAllLists();
   virtual void BookControlHistograms();
   virtual void BookFinalResultsHistograms();
 
-  /* Methods called in UserExec(Option_t *): */
+  /* split calls in UserExec() depending on flags */
+  virtual void AODExec();
+  virtual void MCOnTheFlyExec();
+
+  /* Methods called in AODExec(Option_t *): */
   virtual Bool_t SurviveEventCut(AliVEvent *ave);
   virtual Bool_t SurviveTrackCut(AliAODTrack *aTrack);
 
@@ -66,7 +79,43 @@ public:
   virtual void GetPointersForControlHistograms();
   virtual void GetPointersForOutputHistograms();
 
-  /* Setters and getters */
+  /* methods called for on the fly MC anaylsis */
+  virtual void MCPdfFlowHarmonicsSetup();
+  virtual void MCPdfSymmetryPlanesSetup();
+  virtual Int_t GetMCNumberOfParticlesPerEvent();
+
+  /* setters and getters for MC analsys */
+  void SetMCAnalysis(Bool_t mc) { this->fMCAnalaysis = mc; }
+  void SetMCRNGSeed(Int_t seed) { this->fMCRNGSeed = seed; }
+  void SetMCFlowHarmonics(TArrayD *array) {
+    if (array->GetSize() > fMaxHarmonic) {
+      std::cout << __LINE__ << ": Array exceeds maximum allowed harmonic"
+                << std::endl;
+      Fatal("SetFlowHarmonics", "Too many harmonics");
+    }
+    fMCFlowHarmonics = array;
+  }
+  void SetMCPdfRange(Double_t min, Double_t max) {
+    fMCPdfRange[MIN] = min;
+    fMCPdfRange[MAX] = max;
+  }
+  void SetMCNumberOfEvents(Int_t n) { fMCNumberOfEvents = n; }
+  void SetMCNumberOfParticlesPerEventFluctuations(Bool_t option) {
+    fMCNumberOfParticlesPerEventFluctuations = option;
+  }
+  void SetMCNumberOfParticlesPerEvent(Int_t n) {
+    fMCNumberOfParticlesPerEvent = n;
+  }
+  void SetMCNumberOfParticlesPerEventRange(Int_t min, Int_t max) {
+    fMCNumberOfParticlesPerEventRange[MIN] = min;
+    fMCNumberOfParticlesPerEventRange[MAX] = max;
+  }
+
+  /* Methods for qvector */
+  void CalculateQvectors();
+  TComplex Q(Int_t n, Int_t p);
+
+  /* Setters and getters for data analysis*/
   void SetControlHistogramsList(TList *const chl) {
     this->fControlHistogramsList = chl;
   };
@@ -158,13 +207,12 @@ private:
   /* control histograms */
   TList *fControlHistogramsList;
   TString fControlHistogramsListName;
-  /* array holding control histograms for tracks */
   TH1F *fTrackControlHistograms[LAST_ETRACK][LAST_EBEFOREAFTER];
-  /* name of track control histograms */
   TString fTrackControlHistogramNames[LAST_ETRACK][LAST_EBEFOREAFTER]
                                      [LAST_ENAME];
+  /* array holding bins of track control histograms */
   Double_t fBinsTrackControlHistograms[LAST_ETRACK][LAST_EBINS];
-  /* array holding control histograms for events */
+  /* array holding event control histograms */
   TH1F *fEventControlHistograms[LAST_EEVENT][LAST_EBEFOREAFTER];
   TString fEventControlHistogramNames[LAST_EEVENT][LAST_EBEFOREAFTER]
                                      [LAST_ENAME];
@@ -179,13 +227,36 @@ private:
   /* Final results */
   TList *fFinalResultsList;
   TString fFinalResultsListName;
-
   /* array holding final result histograms */
   TH1F *fFinalResultHistograms[LAST_EFINAL];
   TString fFinalResultHistogramNames[LAST_EFINAL][LAST_ENAME];
   Double_t fBinsFinalResultHistograms[LAST_EFINAL][LAST_EBINS];
 
-  // Increase this counter in each new version:
+  /* Monte Carlo analysis */
+  TList *fMCAnalysisList;
+  TString fMCAnalysisListName;
+  Bool_t fMCAnalaysis;
+  TRandom3 *fMCRNG;
+  Int_t fMCRNGSeed;
+  TF1 *fMCPdf;
+  TString fMCPdfName;
+  Double_t fMCPdfRange[LAST_EMINMAX];
+  TArrayD *fMCFlowHarmonics;
+  Int_t fMCNumberOfEvents;
+  Bool_t fMCNumberOfParticlesPerEventFluctuations;
+  Int_t fMCNumberOfParticlesPerEvent;
+  Int_t fMCNumberOfParticlesPerEventRange[LAST_EMINMAX];
+  TH1F *fMCControlHistograms[LAST_EMC];
+  TString fMCControlHistogramNames[LAST_EMC][LAST_ENAME];
+  Double_t fMCBinsControlHistogram[LAST_EMC][LAST_EBINS];
+
+  /* qvectors */
+  TList *fQvectorList;
+  Int_t fMaxHarmonic;
+  Int_t fMaxCorrelator;
+  TComplex fQvector[kMaxHarmonic][kMaxCorrelator];
+
+  /* Increase this counter in each new version: */
   ClassDef(AliAnalysisTaskForStudents, 3);
 };
 
