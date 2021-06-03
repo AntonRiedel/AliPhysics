@@ -30,7 +30,7 @@
 
 /* global constants */
 const Int_t kMaxHarmonic = 6;
-const Int_t kMaxCorrelator = 6;
+const Int_t kMaxCorrelator = 8;
 const Int_t kMaxPower = kMaxCorrelator + 1;
 
 /* enumerations */
@@ -79,13 +79,26 @@ public:
   virtual void MCPdfSymmetryPlanesSetup();
   virtual Int_t GetMCNumberOfParticlesPerEvent();
 
-  /* Methods for qvector */
+  /* Methods for computing qvectors */
   void CalculateQvectors();
   TComplex Q(Int_t n, Int_t p);
   TComplex Two(Int_t n1, Int_t n2);
   TComplex Three(Int_t n1, Int_t n2, Int_t n3);
+  TComplex Four(Int_t n1, Int_t n2, Int_t n3, Int_t n4);
+  TComplex Five(Int_t n1, Int_t n2, Int_t n3, Int_t n4, Int_t n5);
+  TComplex Six(Int_t n1, Int_t n2, Int_t n3, Int_t n4, Int_t n5, Int_t n6);
+  TComplex Recursion(Int_t n, Int_t *harmonic, Int_t mult = 1, Int_t skip = 0);
 
-  /* GetPointers Methods in case we need to manually trigger Terminate() */
+  /* methods for computing nested loops */
+  TComplex TwoNestedLoops(Int_t n1, Int_t n2);
+  /* void ThreeNestedLoops(Int_t n1, Int_t n2, Int_t n3); */
+  /* void FourNestedLoops(Int_t n1, Int_t n2, Int_t n3, Int_t n4); */
+  /* void FiveNestedLoops(Int_t n1, Int_t n2, Int_t n3, Int_t n4, Int_t n5); */
+  /* void SixNestedLoops(Int_t n1, Int_t n2, Int_t n3, Int_t n4, Int_t n5, */
+  /*                     Int_t n6); */
+
+  /* GetPointers Methods in case we need to manually trigger Terminate()
+   */
   virtual void GetPointers(TList *list);
   virtual void GetPointersForControlHistograms();
   virtual void GetPointersForOutputHistograms();
@@ -172,7 +185,7 @@ public:
 
   /* setters and getters for MC analsys */
   void SetMCAnalysis(Bool_t mc) { this->fMCAnalaysis = mc; }
-  void SetMCRNGSeed(Int_t seed) { this->fMCRNGSeed = seed; }
+  void SetMCRNGSeed(UInt_t seed) { this->fMCRNGSeed = seed; }
   void SetMCFlowHarmonics(TArrayD *array) {
     if (array->GetSize() > kMaxHarmonic) {
       std::cout << __LINE__ << ": Array exceeds maximum allowed harmonic"
@@ -185,13 +198,11 @@ public:
     fMCPdfRange[MIN] = min;
     fMCPdfRange[MAX] = max;
   }
-  void SetMCNumberOfParticlesPerEventFluctuations(Bool_t option) {
-    fMCNumberOfParticlesPerEventFluctuations = option;
-  }
   void SetMCNumberOfParticlesPerEvent(Int_t n) {
     fMCNumberOfParticlesPerEvent = n;
   }
   void SetMCNumberOfParticlesPerEventRange(Int_t min, Int_t max) {
+    fMCNumberOfParticlesPerEventFluctuations = kTRUE;
     fMCNumberOfParticlesPerEventRange[MIN] = min;
     fMCNumberOfParticlesPerEventRange[MAX] = max;
   }
@@ -201,7 +212,8 @@ private:
   AliAnalysisTaskForStudents &
   operator=(const AliAnalysisTaskForStudents &aatmpf);
 
-  /* base list holding all output object (a.k.a. grandmother of all lists) */
+  /* base list holding all output object (a.k.a. grandmother of all lists)
+   */
   TList *fHistList;
   TString fHistListName;
 
@@ -239,7 +251,7 @@ private:
   TString fMCAnalysisListName;
   Bool_t fMCAnalaysis;
   TRandom3 *fMCRNG;
-  Int_t fMCRNGSeed;
+  UInt_t fMCRNGSeed;
   TF1 *fMCPdf;
   TString fMCPdfName;
   Double_t fMCPdfRange[LAST_EMINMAX];

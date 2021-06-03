@@ -159,20 +159,40 @@ void AliAnalysisTaskForStudents::UserCreateOutputObjects() {
 
 void AliAnalysisTaskForStudents::UserExec(Option_t *) {
   /* main method called for analysis */
-  /* different modes of analysis possible */
 
+  /* clear azimuthal angles */
   fPhi.clear();
 
-  /* MC analysis */
   if (fMCAnalaysis) {
+    /* MC analysis */
     MCOnTheFlyExec();
   } else {
     /* real data */
     AODExec();
   }
+
+  /* calculate all qvectors */
   CalculateQvectors();
-  fFinalResultProfile->Fill(0.5, Two(2, -2).Re() / Two(0, 0).Re());
-  fFinalResultProfile->Fill(1.5, Two(3, -3).Re() / Two(0, 0).Re());
+
+  /* fill finnal result profiles */
+  fFinalResultProfile->Fill(0.5, Two(2, -2).Re() / Two(0, 0).Re(),
+                            Two(0, 0).Re());
+  std::cout << "Two done" << std::endl;
+  fFinalResultProfile->Fill(1.5, Three(-5, -1, 6).Re() / Three(0, 0, 0).Re(),
+                            Three(0, 0, 0).Re());
+  std::cout << "Three done" << std::endl;
+  fFinalResultProfile->Fill(2.5,
+                            Four(-3, -2, 2, 3).Re() / Four(0, 0, 0, 0).Re(),
+                            Four(0, 0, 0, 0).Re());
+  std::cout << "Four done" << std::endl;
+  fFinalResultProfile->Fill(
+      3.5, Five(-5, -4, 3, 3, 3).Re() / Five(0, 0, 0, 0, 0).Re(),
+      Five(0, 0, 0, 0, 0).Re());
+  std::cout << "Five done" << std::endl;
+  /* fFinalResultProfile->Fill( */
+  /*     4.5, Six(-2, -2, -1, -1, 3, 3).Re() / Six(0, 0, 0, 0, 0, 0).Re(), */
+  /*     Six(0, 0, 0, 0, 0, 0).Re()); */
+  /* std::cout << "Six done" << std::endl; */
 }
 
 void AliAnalysisTaskForStudents::Terminate(Option_t *) {
@@ -193,10 +213,11 @@ void AliAnalysisTaskForStudents::Terminate(Option_t *) {
   fFinalResultHistograms[PHIAVG]->SetBinContent(
       1, fTrackControlHistograms[PHI][AFTER]->GetMean());
   if (fMCAnalaysis) {
-    std::cout << TMath::Sqrt(fFinalResultProfile->GetBinContent(1))
-              << std::endl;
-    std::cout << TMath::Sqrt(TMath::Abs(fFinalResultProfile->GetBinContent(2)))
-              << std::endl;
+    std::cout << fFinalResultProfile->GetBinContent(1) << std::endl
+              << fFinalResultProfile->GetBinContent(2) << std::endl
+              << fFinalResultProfile->GetBinContent(3) << std::endl
+              << fFinalResultProfile->GetBinContent(4) << std::endl
+              << fFinalResultProfile->GetBinContent(5) << std::endl;
   }
 }
 
@@ -387,6 +408,13 @@ void AliAnalysisTaskForStudents::InitializeArraysForFinalResultHistograms() {
 void AliAnalysisTaskForStudents::InitializeArraysForMCAnalysis() {
   /* initialize arrays for MC analysis */
 
+  /* 1) Make sure all Q-vectors are initially zero: */
+  for (Int_t h = 0; h < kMaxHarmonic; h++) {
+    for (Int_t p = 0; p < kMaxPower; p++) {
+      fQvector[h][p] = TComplex(0., 0.);
+    }
+  }
+
   /* range of pdf */
   Double_t MCPdfRangeDefaults[LAST_EMINMAX] = {0.0, TMath::TwoPi()};
   for (int i = 0; i < LAST_EMINMAX; ++i) {
@@ -492,7 +520,7 @@ void AliAnalysisTaskForStudents::BookFinalResultsHistograms() {
         fFinalResultHistogramNames[var][2]);
     fFinalResultsList->Add(fFinalResultHistograms[var]);
   }
-  fFinalResultProfile = new TProfile("profile", "profile", 2, 0, 2);
+  fFinalResultProfile = new TProfile("profile", "profile", 5, 0, 5);
   fFinalResultsList->Add(fFinalResultProfile);
 }
 
@@ -503,16 +531,16 @@ void AliAnalysisTaskForStudents::BookMCObjects() {
   fMCRNG = new TRandom3(fMCRNGSeed);
   fMCAnalysisList->Add(fMCRNG);
 
-  /* base setup for the pdf for MC analysis with flow harmonics */
-  /* 1. generate formula, i.e. fourier series */
-  /* 2. set flow harmonics as parameters as given by fMCFlowHarmonics */
-  /* 3. leave symmetry planes and set them later on a event by event basis */
-
   /* protect at some point if fMCFlowHarmonics is empty */
   if (!fMCFlowHarmonics) {
     std::cout << __LINE__ << ": no flow harmonics defined" << std::endl;
     Fatal("BookMCObjects", "Invalid Pointer");
   }
+
+  /* base setup for the pdf for MC analysis with flow harmonics */
+  /* 1. generate formula, i.e. fourier series */
+  /* 2. set flow harmonics as parameters as given by fMCFlowHarmonics */
+  /* 3. leave symmetry planes and set them later on a event by event basis */
 
   /* generate formula */
   TString Formula = "";
@@ -526,13 +554,13 @@ void AliAnalysisTaskForStudents::BookMCObjects() {
 
   /* create TF1 object */
   fMCPdf = new TF1(fMCPdfName, Formula, 0., TMath::TwoPi());
+  fMCAnalysisList->Add(fMCPdf);
 
   /* set flow harmonics */
   /* flow harmonics are parameters with odd index */
   for (int i = 0; i < fMCFlowHarmonics->GetSize(); ++i) {
     fMCPdf->SetParameter(2 * i + 1, fMCFlowHarmonics->GetAt(i));
   }
-  fMCAnalysisList->Add(fMCPdf);
 }
 
 void AliAnalysisTaskForStudents::AODExec() {
@@ -541,8 +569,8 @@ void AliAnalysisTaskForStudents::AODExec() {
   /* 2. Start analysis over AODs */
   /* 3. Reset event-by-event objects */
   /* 4. PostData */
-  /* 1. Get pointer to AOD event */
 
+  /* 1. Get pointer to AOD event */
   AliAODEvent *aAOD = dynamic_cast<AliAODEvent *>(InputEvent()); // from TaskSE
   if (!aAOD) {
     return;
@@ -630,14 +658,11 @@ void AliAnalysisTaskForStudents::AODExec() {
 void AliAnalysisTaskForStudents::MCOnTheFlyExec() {
   /* call this method for monte carlo analysis */
 
-  Double_t Phi = 0.;
-  /* loop over all events */
   /* set symmetry planes for MC analysis */
   MCPdfSymmetryPlanesSetup();
   /* loop over all particles in an event */
   for (int i = 0; i < GetMCNumberOfParticlesPerEvent(); ++i) {
-    Phi = fMCPdf->GetRandom();
-    fPhi.push_back(Phi);
+    fPhi.push_back(fMCPdf->GetRandom());
   }
 }
 
@@ -744,9 +769,9 @@ Bool_t AliAnalysisTaskForStudents::SurviveTrackCut(AliAODTrack *aTrack) {
 
 void AliAnalysisTaskForStudents::MCPdfSymmetryPlanesSetup() {
   /* set symmetry planes randomly on a event by event basis */
-  Double_t Psi = 0;
+  /* Double_t Psi = 0; */
+  Double_t Psi = fMCRNG->Uniform(0., TMath::TwoPi());
   for (int i = 0; i < fMCFlowHarmonics->GetSize(); ++i) {
-    Psi = fMCRNG->Uniform(0., TMath::TwoPi());
     fMCPdf->SetParameter(2 * (i + 1), Psi);
   }
 }
@@ -814,6 +839,360 @@ TComplex AliAnalysisTaskForStudents::Three(Int_t n1, Int_t n2, Int_t n3) {
                    Q(n2, 1) * Q(n1 + n3, 2) - Q(n1, 1) * Q(n2 + n3, 2) +
                    2. * Q(n1 + n2 + n3, 3);
   return three;
+}
+
+TComplex AliAnalysisTaskForStudents::Four(Int_t n1, Int_t n2, Int_t n3,
+                                          Int_t n4) {
+  /* Generic four-particle correlation */
+  /* <exp[i(n1*phi1+n2*phi2+n3*phi3+n4*phi4)]>. */
+  TComplex four =
+      Q(n1, 1) * Q(n2, 1) * Q(n3, 1) * Q(n4, 1) -
+      Q(n1 + n2, 2) * Q(n3, 1) * Q(n4, 1) -
+      Q(n2, 1) * Q(n1 + n3, 2) * Q(n4, 1) -
+      Q(n1, 1) * Q(n2 + n3, 2) * Q(n4, 1) + 2. * Q(n1 + n2 + n3, 3) * Q(n4, 1) -
+      Q(n2, 1) * Q(n3, 1) * Q(n1 + n4, 2) + Q(n2 + n3, 2) * Q(n1 + n4, 2) -
+      Q(n1, 1) * Q(n3, 1) * Q(n2 + n4, 2) + Q(n1 + n3, 2) * Q(n2 + n4, 2) +
+      2. * Q(n3, 1) * Q(n1 + n2 + n4, 3) - Q(n1, 1) * Q(n2, 1) * Q(n3 + n4, 2) +
+      Q(n1 + n2, 2) * Q(n3 + n4, 2) + 2. * Q(n2, 1) * Q(n1 + n3 + n4, 3) +
+      2. * Q(n1, 1) * Q(n2 + n3 + n4, 3) - 6. * Q(n1 + n2 + n3 + n4, 4);
+
+  return four;
+}
+
+TComplex AliAnalysisTaskForStudents::Five(Int_t n1, Int_t n2, Int_t n3,
+                                          Int_t n4, Int_t n5) {
+  /* Generic five-particle correlation */
+  /* <exp[i(n1*phi1+n2*phi2+n3*phi3+n4*phi4+n5*phi5)]>. */
+  TComplex five = Q(n1, 1) * Q(n2, 1) * Q(n3, 1) * Q(n4, 1) * Q(n5, 1) -
+                  Q(n1 + n2, 2) * Q(n3, 1) * Q(n4, 1) * Q(n5, 1) -
+                  Q(n2, 1) * Q(n1 + n3, 2) * Q(n4, 1) * Q(n5, 1) -
+                  Q(n1, 1) * Q(n2 + n3, 2) * Q(n4, 1) * Q(n5, 1) +
+                  2. * Q(n1 + n2 + n3, 3) * Q(n4, 1) * Q(n5, 1) -
+                  Q(n2, 1) * Q(n3, 1) * Q(n1 + n4, 2) * Q(n5, 1) +
+                  Q(n2 + n3, 2) * Q(n1 + n4, 2) * Q(n5, 1) -
+                  Q(n1, 1) * Q(n3, 1) * Q(n2 + n4, 2) * Q(n5, 1) +
+                  Q(n1 + n3, 2) * Q(n2 + n4, 2) * Q(n5, 1) +
+                  2. * Q(n3, 1) * Q(n1 + n2 + n4, 3) * Q(n5, 1) -
+                  Q(n1, 1) * Q(n2, 1) * Q(n3 + n4, 2) * Q(n5, 1) +
+                  Q(n1 + n2, 2) * Q(n3 + n4, 2) * Q(n5, 1) +
+                  2. * Q(n2, 1) * Q(n1 + n3 + n4, 3) * Q(n5, 1) +
+                  2. * Q(n1, 1) * Q(n2 + n3 + n4, 3) * Q(n5, 1) -
+                  6. * Q(n1 + n2 + n3 + n4, 4) * Q(n5, 1) -
+                  Q(n2, 1) * Q(n3, 1) * Q(n4, 1) * Q(n1 + n5, 2) +
+                  Q(n2 + n3, 2) * Q(n4, 1) * Q(n1 + n5, 2) +
+                  Q(n3, 1) * Q(n2 + n4, 2) * Q(n1 + n5, 2) +
+                  Q(n2, 1) * Q(n3 + n4, 2) * Q(n1 + n5, 2) -
+                  2. * Q(n2 + n3 + n4, 3) * Q(n1 + n5, 2) -
+                  Q(n1, 1) * Q(n3, 1) * Q(n4, 1) * Q(n2 + n5, 2) +
+                  Q(n1 + n3, 2) * Q(n4, 1) * Q(n2 + n5, 2) +
+                  Q(n3, 1) * Q(n1 + n4, 2) * Q(n2 + n5, 2) +
+                  Q(n1, 1) * Q(n3 + n4, 2) * Q(n2 + n5, 2) -
+                  2. * Q(n1 + n3 + n4, 3) * Q(n2 + n5, 2) +
+                  2. * Q(n3, 1) * Q(n4, 1) * Q(n1 + n2 + n5, 3) -
+                  2. * Q(n3 + n4, 2) * Q(n1 + n2 + n5, 3) -
+                  Q(n1, 1) * Q(n2, 1) * Q(n4, 1) * Q(n3 + n5, 2) +
+                  Q(n1 + n2, 2) * Q(n4, 1) * Q(n3 + n5, 2) +
+                  Q(n2, 1) * Q(n1 + n4, 2) * Q(n3 + n5, 2) +
+                  Q(n1, 1) * Q(n2 + n4, 2) * Q(n3 + n5, 2) -
+                  2. * Q(n1 + n2 + n4, 3) * Q(n3 + n5, 2) +
+                  2. * Q(n2, 1) * Q(n4, 1) * Q(n1 + n3 + n5, 3) -
+                  2. * Q(n2 + n4, 2) * Q(n1 + n3 + n5, 3) +
+                  2. * Q(n1, 1) * Q(n4, 1) * Q(n2 + n3 + n5, 3) -
+                  2. * Q(n1 + n4, 2) * Q(n2 + n3 + n5, 3) -
+                  6. * Q(n4, 1) * Q(n1 + n2 + n3 + n5, 4) -
+                  Q(n1, 1) * Q(n2, 1) * Q(n3, 1) * Q(n4 + n5, 2) +
+                  Q(n1 + n2, 2) * Q(n3, 1) * Q(n4 + n5, 2) +
+                  Q(n2, 1) * Q(n1 + n3, 2) * Q(n4 + n5, 2) +
+                  Q(n1, 1) * Q(n2 + n3, 2) * Q(n4 + n5, 2) -
+                  2. * Q(n1 + n2 + n3, 3) * Q(n4 + n5, 2) +
+                  2. * Q(n2, 1) * Q(n3, 1) * Q(n1 + n4 + n5, 3) -
+                  2. * Q(n2 + n3, 2) * Q(n1 + n4 + n5, 3) +
+                  2. * Q(n1, 1) * Q(n3, 1) * Q(n2 + n4 + n5, 3) -
+                  2. * Q(n1 + n3, 2) * Q(n2 + n4 + n5, 3) -
+                  6. * Q(n3, 1) * Q(n1 + n2 + n4 + n5, 4) +
+                  2. * Q(n1, 1) * Q(n2, 1) * Q(n3 + n4 + n5, 3) -
+                  2. * Q(n1 + n2, 2) * Q(n3 + n4 + n5, 3) -
+                  6. * Q(n2, 1) * Q(n1 + n3 + n4 + n5, 4) -
+                  6. * Q(n1, 1) * Q(n2 + n3 + n4 + n5, 4) +
+                  24. * Q(n1 + n2 + n3 + n4 + n5, 5);
+  return five;
+}
+
+TComplex AliAnalysisTaskForStudents::Six(Int_t n1, Int_t n2, Int_t n3, Int_t n4,
+                                         Int_t n5, Int_t n6) {
+  /* Generic six-particle correlation */
+  /* <exp[i(n1*phi1+n2*phi2+n3*phi3+n4*phi4+n5*phi5+n6*phi6)]>. */
+  TComplex six =
+      Q(n1, 1) * Q(n2, 1) * Q(n3, 1) * Q(n4, 1) * Q(n5, 1) * Q(n6, 1) -
+      Q(n1 + n2, 2) * Q(n3, 1) * Q(n4, 1) * Q(n5, 1) * Q(n6, 1) -
+      Q(n2, 1) * Q(n1 + n3, 2) * Q(n4, 1) * Q(n5, 1) * Q(n6, 1) -
+      Q(n1, 1) * Q(n2 + n3, 2) * Q(n4, 1) * Q(n5, 1) * Q(n6, 1) +
+      2. * Q(n1 + n2 + n3, 3) * Q(n4, 1) * Q(n5, 1) * Q(n6, 1) -
+      Q(n2, 1) * Q(n3, 1) * Q(n1 + n4, 2) * Q(n5, 1) * Q(n6, 1) +
+      Q(n2 + n3, 2) * Q(n1 + n4, 2) * Q(n5, 1) * Q(n6, 1) -
+      Q(n1, 1) * Q(n3, 1) * Q(n2 + n4, 2) * Q(n5, 1) * Q(n6, 1) +
+      Q(n1 + n3, 2) * Q(n2 + n4, 2) * Q(n5, 1) * Q(n6, 1) +
+      2. * Q(n3, 1) * Q(n1 + n2 + n4, 3) * Q(n5, 1) * Q(n6, 1) -
+      Q(n1, 1) * Q(n2, 1) * Q(n3 + n4, 2) * Q(n5, 1) * Q(n6, 1) +
+      Q(n1 + n2, 2) * Q(n3 + n4, 2) * Q(n5, 1) * Q(n6, 1) +
+      2. * Q(n2, 1) * Q(n1 + n3 + n4, 3) * Q(n5, 1) * Q(n6, 1) +
+      2. * Q(n1, 1) * Q(n2 + n3 + n4, 3) * Q(n5, 1) * Q(n6, 1) -
+      6. * Q(n1 + n2 + n3 + n4, 4) * Q(n5, 1) * Q(n6, 1) -
+      Q(n2, 1) * Q(n3, 1) * Q(n4, 1) * Q(n1 + n5, 2) * Q(n6, 1) +
+      Q(n2 + n3, 2) * Q(n4, 1) * Q(n1 + n5, 2) * Q(n6, 1) +
+      Q(n3, 1) * Q(n2 + n4, 2) * Q(n1 + n5, 2) * Q(n6, 1) +
+      Q(n2, 1) * Q(n3 + n4, 2) * Q(n1 + n5, 2) * Q(n6, 1) -
+      2. * Q(n2 + n3 + n4, 3) * Q(n1 + n5, 2) * Q(n6, 1) -
+      Q(n1, 1) * Q(n3, 1) * Q(n4, 1) * Q(n2 + n5, 2) * Q(n6, 1) +
+      Q(n1 + n3, 2) * Q(n4, 1) * Q(n2 + n5, 2) * Q(n6, 1) +
+      Q(n3, 1) * Q(n1 + n4, 2) * Q(n2 + n5, 2) * Q(n6, 1) +
+      Q(n1, 1) * Q(n3 + n4, 2) * Q(n2 + n5, 2) * Q(n6, 1) -
+      2. * Q(n1 + n3 + n4, 3) * Q(n2 + n5, 2) * Q(n6, 1) +
+      2. * Q(n3, 1) * Q(n4, 1) * Q(n1 + n2 + n5, 3) * Q(n6, 1) -
+      2. * Q(n3 + n4, 2) * Q(n1 + n2 + n5, 3) * Q(n6, 1) -
+      Q(n1, 1) * Q(n2, 1) * Q(n4, 1) * Q(n3 + n5, 2) * Q(n6, 1) +
+      Q(n1 + n2, 2) * Q(n4, 1) * Q(n3 + n5, 2) * Q(n6, 1) +
+      Q(n2, 1) * Q(n1 + n4, 2) * Q(n3 + n5, 2) * Q(n6, 1) +
+      Q(n1, 1) * Q(n2 + n4, 2) * Q(n3 + n5, 2) * Q(n6, 1) -
+      2. * Q(n1 + n2 + n4, 3) * Q(n3 + n5, 2) * Q(n6, 1) +
+      2. * Q(n2, 1) * Q(n4, 1) * Q(n1 + n3 + n5, 3) * Q(n6, 1) -
+      2. * Q(n2 + n4, 2) * Q(n1 + n3 + n5, 3) * Q(n6, 1) +
+      2. * Q(n1, 1) * Q(n4, 1) * Q(n2 + n3 + n5, 3) * Q(n6, 1) -
+      2. * Q(n1 + n4, 2) * Q(n2 + n3 + n5, 3) * Q(n6, 1) -
+      6. * Q(n4, 1) * Q(n1 + n2 + n3 + n5, 4) * Q(n6, 1) -
+      Q(n1, 1) * Q(n2, 1) * Q(n3, 1) * Q(n4 + n5, 2) * Q(n6, 1) +
+      Q(n1 + n2, 2) * Q(n3, 1) * Q(n4 + n5, 2) * Q(n6, 1) +
+      Q(n2, 1) * Q(n1 + n3, 2) * Q(n4 + n5, 2) * Q(n6, 1) +
+      Q(n1, 1) * Q(n2 + n3, 2) * Q(n4 + n5, 2) * Q(n6, 1) -
+      2. * Q(n1 + n2 + n3, 3) * Q(n4 + n5, 2) * Q(n6, 1) +
+      2. * Q(n2, 1) * Q(n3, 1) * Q(n1 + n4 + n5, 3) * Q(n6, 1) -
+      2. * Q(n2 + n3, 2) * Q(n1 + n4 + n5, 3) * Q(n6, 1) +
+      2. * Q(n1, 1) * Q(n3, 1) * Q(n2 + n4 + n5, 3) * Q(n6, 1) -
+      2. * Q(n1 + n3, 2) * Q(n2 + n4 + n5, 3) * Q(n6, 1) -
+      6. * Q(n3, 1) * Q(n1 + n2 + n4 + n5, 4) * Q(n6, 1) +
+      2. * Q(n1, 1) * Q(n2, 1) * Q(n3 + n4 + n5, 3) * Q(n6, 1) -
+      2. * Q(n1 + n2, 2) * Q(n3 + n4 + n5, 3) * Q(n6, 1) -
+      6. * Q(n2, 1) * Q(n1 + n3 + n4 + n5, 4) * Q(n6, 1) -
+      6. * Q(n1, 1) * Q(n2 + n3 + n4 + n5, 4) * Q(n6, 1) +
+      24. * Q(n1 + n2 + n3 + n4 + n5, 5) * Q(n6, 1) -
+      Q(n2, 1) * Q(n3, 1) * Q(n4, 1) * Q(n5, 1) * Q(n1 + n6, 2) +
+      Q(n2 + n3, 2) * Q(n4, 1) * Q(n5, 1) * Q(n1 + n6, 2) +
+      Q(n3, 1) * Q(n2 + n4, 2) * Q(n5, 1) * Q(n1 + n6, 2) +
+      Q(n2, 1) * Q(n3 + n4, 2) * Q(n5, 1) * Q(n1 + n6, 2) -
+      2. * Q(n2 + n3 + n4, 3) * Q(n5, 1) * Q(n1 + n6, 2) +
+      Q(n3, 1) * Q(n4, 1) * Q(n2 + n5, 2) * Q(n1 + n6, 2) -
+      Q(n3 + n4, 2) * Q(n2 + n5, 2) * Q(n1 + n6, 2) +
+      Q(n2, 1) * Q(n4, 1) * Q(n3 + n5, 2) * Q(n1 + n6, 2) -
+      Q(n2 + n4, 2) * Q(n3 + n5, 2) * Q(n1 + n6, 2) -
+      2. * Q(n4, 1) * Q(n2 + n3 + n5, 3) * Q(n1 + n6, 2) +
+      Q(n2, 1) * Q(n3, 1) * Q(n4 + n5, 2) * Q(n1 + n6, 2) -
+      Q(n2 + n3, 2) * Q(n4 + n5, 2) * Q(n1 + n6, 2) -
+      2. * Q(n3, 1) * Q(n2 + n4 + n5, 3) * Q(n1 + n6, 2) -
+      2. * Q(n2, 1) * Q(n3 + n4 + n5, 3) * Q(n1 + n6, 2) +
+      6. * Q(n2 + n3 + n4 + n5, 4) * Q(n1 + n6, 2) -
+      Q(n1, 1) * Q(n3, 1) * Q(n4, 1) * Q(n5, 1) * Q(n2 + n6, 2) +
+      Q(n1 + n3, 2) * Q(n4, 1) * Q(n5, 1) * Q(n2 + n6, 2) +
+      Q(n3, 1) * Q(n1 + n4, 2) * Q(n5, 1) * Q(n2 + n6, 2) +
+      Q(n1, 1) * Q(n3 + n4, 2) * Q(n5, 1) * Q(n2 + n6, 2) -
+      2. * Q(n1 + n3 + n4, 3) * Q(n5, 1) * Q(n2 + n6, 2) +
+      Q(n3, 1) * Q(n4, 1) * Q(n1 + n5, 2) * Q(n2 + n6, 2) -
+      Q(n3 + n4, 2) * Q(n1 + n5, 2) * Q(n2 + n6, 2) +
+      Q(n1, 1) * Q(n4, 1) * Q(n3 + n5, 2) * Q(n2 + n6, 2) -
+      Q(n1 + n4, 2) * Q(n3 + n5, 2) * Q(n2 + n6, 2) -
+      2. * Q(n4, 1) * Q(n1 + n3 + n5, 3) * Q(n2 + n6, 2) +
+      Q(n1, 1) * Q(n3, 1) * Q(n4 + n5, 2) * Q(n2 + n6, 2) -
+      Q(n1 + n3, 2) * Q(n4 + n5, 2) * Q(n2 + n6, 2) -
+      2. * Q(n3, 1) * Q(n1 + n4 + n5, 3) * Q(n2 + n6, 2) -
+      2. * Q(n1, 1) * Q(n3 + n4 + n5, 3) * Q(n2 + n6, 2) +
+      6. * Q(n1 + n3 + n4 + n5, 4) * Q(n2 + n6, 2) +
+      2. * Q(n3, 1) * Q(n4, 1) * Q(n5, 1) * Q(n1 + n2 + n6, 3) -
+      2. * Q(n3 + n4, 2) * Q(n5, 1) * Q(n1 + n2 + n6, 3) -
+      2. * Q(n4, 1) * Q(n3 + n5, 2) * Q(n1 + n2 + n6, 3) -
+      2. * Q(n3, 1) * Q(n4 + n5, 2) * Q(n1 + n2 + n6, 3) +
+      4. * Q(n3 + n4 + n5, 3) * Q(n1 + n2 + n6, 3) -
+      Q(n1, 1) * Q(n2, 1) * Q(n4, 1) * Q(n5, 1) * Q(n3 + n6, 2) +
+      Q(n1 + n2, 2) * Q(n4, 1) * Q(n5, 1) * Q(n3 + n6, 2) +
+      Q(n2, 1) * Q(n1 + n4, 2) * Q(n5, 1) * Q(n3 + n6, 2) +
+      Q(n1, 1) * Q(n2 + n4, 2) * Q(n5, 1) * Q(n3 + n6, 2) -
+      2. * Q(n1 + n2 + n4, 3) * Q(n5, 1) * Q(n3 + n6, 2) +
+      Q(n2, 1) * Q(n4, 1) * Q(n1 + n5, 2) * Q(n3 + n6, 2) -
+      Q(n2 + n4, 2) * Q(n1 + n5, 2) * Q(n3 + n6, 2) +
+      Q(n1, 1) * Q(n4, 1) * Q(n2 + n5, 2) * Q(n3 + n6, 2) -
+      Q(n1 + n4, 2) * Q(n2 + n5, 2) * Q(n3 + n6, 2) -
+      2. * Q(n4, 1) * Q(n1 + n2 + n5, 3) * Q(n3 + n6, 2) +
+      Q(n1, 1) * Q(n2, 1) * Q(n4 + n5, 2) * Q(n3 + n6, 2) -
+      Q(n1 + n2, 2) * Q(n4 + n5, 2) * Q(n3 + n6, 2) -
+      2. * Q(n2, 1) * Q(n1 + n4 + n5, 3) * Q(n3 + n6, 2) -
+      2. * Q(n1, 1) * Q(n2 + n4 + n5, 3) * Q(n3 + n6, 2) +
+      6. * Q(n1 + n2 + n4 + n5, 4) * Q(n3 + n6, 2) +
+      2. * Q(n2, 1) * Q(n4, 1) * Q(n5, 1) * Q(n1 + n3 + n6, 3) -
+      2. * Q(n2 + n4, 2) * Q(n5, 1) * Q(n1 + n3 + n6, 3) -
+      2. * Q(n4, 1) * Q(n2 + n5, 2) * Q(n1 + n3 + n6, 3) -
+      2. * Q(n2, 1) * Q(n4 + n5, 2) * Q(n1 + n3 + n6, 3) +
+      4. * Q(n2 + n4 + n5, 3) * Q(n1 + n3 + n6, 3) +
+      2. * Q(n1, 1) * Q(n4, 1) * Q(n5, 1) * Q(n2 + n3 + n6, 3) -
+      2. * Q(n1 + n4, 2) * Q(n5, 1) * Q(n2 + n3 + n6, 3) -
+      2. * Q(n4, 1) * Q(n1 + n5, 2) * Q(n2 + n3 + n6, 3) -
+      2. * Q(n1, 1) * Q(n4 + n5, 2) * Q(n2 + n3 + n6, 3) +
+      4. * Q(n1 + n4 + n5, 3) * Q(n2 + n3 + n6, 3) -
+      6. * Q(n4, 1) * Q(n5, 1) * Q(n1 + n2 + n3 + n6, 4) +
+      6. * Q(n4 + n5, 2) * Q(n1 + n2 + n3 + n6, 4) -
+      Q(n1, 1) * Q(n2, 1) * Q(n3, 1) * Q(n5, 1) * Q(n4 + n6, 2) +
+      Q(n1 + n2, 2) * Q(n3, 1) * Q(n5, 1) * Q(n4 + n6, 2) +
+      Q(n2, 1) * Q(n1 + n3, 2) * Q(n5, 1) * Q(n4 + n6, 2) +
+      Q(n1, 1) * Q(n2 + n3, 2) * Q(n5, 1) * Q(n4 + n6, 2) -
+      2. * Q(n1 + n2 + n3, 3) * Q(n5, 1) * Q(n4 + n6, 2) +
+      Q(n2, 1) * Q(n3, 1) * Q(n1 + n5, 2) * Q(n4 + n6, 2) -
+      Q(n2 + n3, 2) * Q(n1 + n5, 2) * Q(n4 + n6, 2) +
+      Q(n1, 1) * Q(n3, 1) * Q(n2 + n5, 2) * Q(n4 + n6, 2) -
+      Q(n1 + n3, 2) * Q(n2 + n5, 2) * Q(n4 + n6, 2) -
+      2. * Q(n3, 1) * Q(n1 + n2 + n5, 3) * Q(n4 + n6, 2) +
+      Q(n1, 1) * Q(n2, 1) * Q(n3 + n5, 2) * Q(n4 + n6, 2) -
+      Q(n1 + n2, 2) * Q(n3 + n5, 2) * Q(n4 + n6, 2) -
+      2. * Q(n2, 1) * Q(n1 + n3 + n5, 3) * Q(n4 + n6, 2) -
+      2. * Q(n1, 1) * Q(n2 + n3 + n5, 3) * Q(n4 + n6, 2) +
+      6. * Q(n1 + n2 + n3 + n5, 4) * Q(n4 + n6, 2) +
+      2. * Q(n2, 1) * Q(n3, 1) * Q(n5, 1) * Q(n1 + n4 + n6, 3) -
+      2. * Q(n2 + n3, 2) * Q(n5, 1) * Q(n1 + n4 + n6, 3) -
+      2. * Q(n3, 1) * Q(n2 + n5, 2) * Q(n1 + n4 + n6, 3) -
+      2. * Q(n2, 1) * Q(n3 + n5, 2) * Q(n1 + n4 + n6, 3) +
+      4. * Q(n2 + n3 + n5, 3) * Q(n1 + n4 + n6, 3) +
+      2. * Q(n1, 1) * Q(n3, 1) * Q(n5, 1) * Q(n2 + n4 + n6, 3) -
+      2. * Q(n1 + n3, 2) * Q(n5, 1) * Q(n2 + n4 + n6, 3) -
+      2. * Q(n3, 1) * Q(n1 + n5, 2) * Q(n2 + n4 + n6, 3) -
+      2. * Q(n1, 1) * Q(n3 + n5, 2) * Q(n2 + n4 + n6, 3) +
+      4. * Q(n1 + n3 + n5, 3) * Q(n2 + n4 + n6, 3) -
+      6. * Q(n3, 1) * Q(n5, 1) * Q(n1 + n2 + n4 + n6, 4) +
+      6. * Q(n3 + n5, 2) * Q(n1 + n2 + n4 + n6, 4) +
+      2. * Q(n1, 1) * Q(n2, 1) * Q(n5, 1) * Q(n3 + n4 + n6, 3) -
+      2. * Q(n1 + n2, 2) * Q(n5, 1) * Q(n3 + n4 + n6, 3) -
+      2. * Q(n2, 1) * Q(n1 + n5, 2) * Q(n3 + n4 + n6, 3) -
+      2. * Q(n1, 1) * Q(n2 + n5, 2) * Q(n3 + n4 + n6, 3) +
+      4. * Q(n1 + n2 + n5, 3) * Q(n3 + n4 + n6, 3) -
+      6. * Q(n2, 1) * Q(n5, 1) * Q(n1 + n3 + n4 + n6, 4) +
+      6. * Q(n2 + n5, 2) * Q(n1 + n3 + n4 + n6, 4) -
+      6. * Q(n1, 1) * Q(n5, 1) * Q(n2 + n3 + n4 + n6, 4) +
+      6. * Q(n1 + n5, 2) * Q(n2 + n3 + n4 + n6, 4) +
+      24. * Q(n5, 1) * Q(n1 + n2 + n3 + n4 + n6, 5) -
+      Q(n1, 1) * Q(n2, 1) * Q(n3, 1) * Q(n4, 1) * Q(n5 + n6, 2) +
+      Q(n1 + n2, 2) * Q(n3, 1) * Q(n4, 1) * Q(n5 + n6, 2) +
+      Q(n2, 1) * Q(n1 + n3, 2) * Q(n4, 1) * Q(n5 + n6, 2) +
+      Q(n1, 1) * Q(n2 + n3, 2) * Q(n4, 1) * Q(n5 + n6, 2) -
+      2. * Q(n1 + n2 + n3, 3) * Q(n4, 1) * Q(n5 + n6, 2) +
+      Q(n2, 1) * Q(n3, 1) * Q(n1 + n4, 2) * Q(n5 + n6, 2) -
+      Q(n2 + n3, 2) * Q(n1 + n4, 2) * Q(n5 + n6, 2) +
+      Q(n1, 1) * Q(n3, 1) * Q(n2 + n4, 2) * Q(n5 + n6, 2) -
+      Q(n1 + n3, 2) * Q(n2 + n4, 2) * Q(n5 + n6, 2) -
+      2. * Q(n3, 1) * Q(n1 + n2 + n4, 3) * Q(n5 + n6, 2) +
+      Q(n1, 1) * Q(n2, 1) * Q(n3 + n4, 2) * Q(n5 + n6, 2) -
+      Q(n1 + n2, 2) * Q(n3 + n4, 2) * Q(n5 + n6, 2) -
+      2. * Q(n2, 1) * Q(n1 + n3 + n4, 3) * Q(n5 + n6, 2) -
+      2. * Q(n1, 1) * Q(n2 + n3 + n4, 3) * Q(n5 + n6, 2) +
+      6. * Q(n1 + n2 + n3 + n4, 4) * Q(n5 + n6, 2) +
+      2. * Q(n2, 1) * Q(n3, 1) * Q(n4, 1) * Q(n1 + n5 + n6, 3) -
+      2. * Q(n2 + n3, 2) * Q(n4, 1) * Q(n1 + n5 + n6, 3) -
+      2. * Q(n3, 1) * Q(n2 + n4, 2) * Q(n1 + n5 + n6, 3) -
+      2. * Q(n2, 1) * Q(n3 + n4, 2) * Q(n1 + n5 + n6, 3) +
+      4. * Q(n2 + n3 + n4, 3) * Q(n1 + n5 + n6, 3) +
+      2. * Q(n1, 1) * Q(n3, 1) * Q(n4, 1) * Q(n2 + n5 + n6, 3) -
+      2. * Q(n1 + n3, 2) * Q(n4, 1) * Q(n2 + n5 + n6, 3) -
+      2. * Q(n3, 1) * Q(n1 + n4, 2) * Q(n2 + n5 + n6, 3) -
+      2. * Q(n1, 1) * Q(n3 + n4, 2) * Q(n2 + n5 + n6, 3) +
+      4. * Q(n1 + n3 + n4, 3) * Q(n2 + n5 + n6, 3) -
+      6. * Q(n3, 1) * Q(n4, 1) * Q(n1 + n2 + n5 + n6, 4) +
+      6. * Q(n3 + n4, 2) * Q(n1 + n2 + n5 + n6, 4) +
+      2. * Q(n1, 1) * Q(n2, 1) * Q(n4, 1) * Q(n3 + n5 + n6, 3) -
+      2. * Q(n1 + n2, 2) * Q(n4, 1) * Q(n3 + n5 + n6, 3) -
+      2. * Q(n2, 1) * Q(n1 + n4, 2) * Q(n3 + n5 + n6, 3) -
+      2. * Q(n1, 1) * Q(n2 + n4, 2) * Q(n3 + n5 + n6, 3) +
+      4. * Q(n1 + n2 + n4, 3) * Q(n3 + n5 + n6, 3) -
+      6. * Q(n2, 1) * Q(n4, 1) * Q(n1 + n3 + n5 + n6, 4) +
+      6. * Q(n2 + n4, 2) * Q(n1 + n3 + n5 + n6, 4) -
+      6. * Q(n1, 1) * Q(n4, 1) * Q(n2 + n3 + n5 + n6, 4) +
+      6. * Q(n1 + n4, 2) * Q(n2 + n3 + n5 + n6, 4) +
+      24. * Q(n4, 1) * Q(n1 + n2 + n3 + n5 + n6, 5) +
+      2. * Q(n1, 1) * Q(n2, 1) * Q(n3, 1) * Q(n4 + n5 + n6, 3) -
+      2. * Q(n1 + n2, 2) * Q(n3, 1) * Q(n4 + n5 + n6, 3) -
+      2. * Q(n2, 1) * Q(n1 + n3, 2) * Q(n4 + n5 + n6, 3) -
+      2. * Q(n1, 1) * Q(n2 + n3, 2) * Q(n4 + n5 + n6, 3) +
+      4. * Q(n1 + n2 + n3, 3) * Q(n4 + n5 + n6, 3) -
+      6. * Q(n2, 1) * Q(n3, 1) * Q(n1 + n4 + n5 + n6, 4) +
+      6. * Q(n2 + n3, 2) * Q(n1 + n4 + n5 + n6, 4) -
+      6. * Q(n1, 1) * Q(n3, 1) * Q(n2 + n4 + n5 + n6, 4) +
+      6. * Q(n1 + n3, 2) * Q(n2 + n4 + n5 + n6, 4) +
+      24. * Q(n3, 1) * Q(n1 + n2 + n4 + n5 + n6, 5) -
+      6. * Q(n1, 1) * Q(n2, 1) * Q(n3 + n4 + n5 + n6, 4) +
+      6. * Q(n1 + n2, 2) * Q(n3 + n4 + n5 + n6, 4) +
+      24. * Q(n2, 1) * Q(n1 + n3 + n4 + n5 + n6, 5) +
+      24. * Q(n1, 1) * Q(n2 + n3 + n4 + n5 + n6, 5) -
+      120. * Q(n1 + n2 + n3 + n4 + n5 + n6, 6);
+  return six;
+}
+
+TComplex AliAnalysisTaskForStudents::Recursion(Int_t n, Int_t *harmonic,
+                                               Int_t mult /*= 1*/,
+                                               Int_t skip /*= 0*/) {
+  /* Calculate multi-particle correlators by using recursion */
+  Int_t nm1 = n - 1;
+  TComplex c(Q(harmonic[nm1], mult));
+  if (nm1 == 0)
+    return c;
+  c *= Recursion(nm1, harmonic);
+  if (nm1 == skip)
+    return c;
+
+  Int_t multp1 = mult + 1;
+  Int_t nm2 = n - 2;
+  Int_t counter1 = 0;
+  Int_t hhold = harmonic[counter1];
+  harmonic[counter1] = harmonic[nm2];
+  harmonic[nm2] = hhold + harmonic[nm1];
+  TComplex c2(Recursion(nm1, harmonic, multp1, nm2));
+  Int_t counter2 = n - 3;
+  while (counter2 >= skip) {
+    harmonic[nm2] = harmonic[counter1];
+    harmonic[counter1] = hhold;
+    ++counter1;
+    hhold = harmonic[counter1];
+    harmonic[counter1] = harmonic[nm2];
+    harmonic[nm2] = hhold + harmonic[nm1];
+    c2 += Recursion(nm1, harmonic, multp1, counter2);
+    --counter2;
+  }
+  harmonic[nm2] = harmonic[counter1];
+  harmonic[counter1] = hhold;
+  if (mult == 1)
+    return c - c2;
+  return c - Double_t(mult) * c2;
+}
+
+TComplex AliAnalysisTaskForStudents::TwoNestedLoops(Int_t n1, Int_t n2) {
+  /* Calculation of <cos(n1*phi1+n2*phi2)> and <sin(n1*phi1+n2*phi2)> */
+  /* with two nested loops. */
+
+  TComplex Two(0., 0.);
+
+  Double_t phi1 = 0., phi2 = 0.; // particle angle
+  /* Double_t w1 = 1., w2 = 1.;     // particle weight */
+  for (std::size_t i1 = 0; i1 < fPhi.size(); i1++) {
+    phi1 = fPhi[i1];
+    /* if (bUseWeights) { */
+    /*   w1 = weights[i1]; */
+    /* } */
+    for (std::size_t i2 = 0; i2 < fPhi.size(); i2++) {
+      if (i2 == i1) {
+        continue;
+      } // Get rid of autocorrelations
+      phi2 = fPhi[i2];
+      /* if (bUseWeights) { */
+      /*   w2 = weights[i2]; */
+      /* } */
+      // Fill profiles:
+      Two += TComplex(TMath::Cos(n1 * phi1 + n2 * phi2),
+                      TMath::Sin(n1 * phi1 + n2 * phi2));
+    }
+  }
+  return Two / static_cast<Double_t>(fPhi.size() * (fPhi.size() - 1));
 }
 
 void AliAnalysisTaskForStudents::GetPointers(TList *histList) {
