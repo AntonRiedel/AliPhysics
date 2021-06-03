@@ -178,17 +178,17 @@ void AliAnalysisTaskForStudents::UserExec(Option_t *) {
   fFinalResultProfile->Fill(0.5, Two(2, -2).Re() / Two(0, 0).Re(),
                             Two(0, 0).Re());
   std::cout << "Two done" << std::endl;
-  fFinalResultProfile->Fill(1.5, Three(-5, -1, 6).Re() / Three(0, 0, 0).Re(),
-                            Three(0, 0, 0).Re());
-  std::cout << "Three done" << std::endl;
-  fFinalResultProfile->Fill(2.5,
-                            Four(-3, -2, 2, 3).Re() / Four(0, 0, 0, 0).Re(),
-                            Four(0, 0, 0, 0).Re());
-  std::cout << "Four done" << std::endl;
-  fFinalResultProfile->Fill(
-      3.5, Five(-5, -4, 3, 3, 3).Re() / Five(0, 0, 0, 0, 0).Re(),
-      Five(0, 0, 0, 0, 0).Re());
-  std::cout << "Five done" << std::endl;
+  /* fFinalResultProfile->Fill(1.5, Three(-5, -1, 6).Re() / Three(0, 0, 0).Re(), */
+  /*                           Three(0, 0, 0).Re()); */
+  /* std::cout << "Three done" << std::endl; */
+  /* fFinalResultProfile->Fill(2.5, */
+  /*                           Four(-3, -2, 2, 3).Re() / Four(0, 0, 0, 0).Re(), */
+  /*                           Four(0, 0, 0, 0).Re()); */
+  /* std::cout << "Four done" << std::endl; */
+  /* fFinalResultProfile->Fill( */
+  /*     3.5, Five(-5, -4, 3, 3, 3).Re() / Five(0, 0, 0, 0, 0).Re(), */
+  /*     Five(0, 0, 0, 0, 0).Re()); */
+  /* std::cout << "Five done" << std::endl; */
   /* fFinalResultProfile->Fill( */
   /*     4.5, Six(-2, -2, -1, -1, 3, 3).Re() / Six(0, 0, 0, 0, 0, 0).Re(), */
   /*     Six(0, 0, 0, 0, 0, 0).Re()); */
@@ -210,8 +210,8 @@ void AliAnalysisTaskForStudents::Terminate(Option_t *) {
   // ... your code for offline calculations ...
 
   /* get average value of phi and write it into its own histogram */
-  fFinalResultHistograms[PHIAVG]->SetBinContent(
-      1, fTrackControlHistograms[PHI][AFTER]->GetMean());
+  fFinalResultHistograms[kPHIAVG]->SetBinContent(
+      1, fTrackControlHistograms[kPHI][kAFTER]->GetMean());
   if (fMCAnalaysis) {
     std::cout << fFinalResultProfile->GetBinContent(1) << std::endl
               << fFinalResultProfile->GetBinContent(2) << std::endl
@@ -369,7 +369,6 @@ void AliAnalysisTaskForStudents::InitializeArraysForCuts() {
     }
   }
 }
->>>>>>> Add InitializeArraysForCuts() method
 
 void AliAnalysisTaskForStudents::InitializeArraysForFinalResultHistograms() {
   /* initialize array for final result histograms */
@@ -473,9 +472,9 @@ void AliAnalysisTaskForStudents::BookControlHistograms() {
       fTrackControlHistograms[var][ba] =
           new TH1F(fTrackControlHistogramNames[var][ba][0],
                    fTrackControlHistogramNames[var][ba][1],
-                   fBinsTrackControlHistograms[var][BIN],
-                   fBinsTrackControlHistograms[var][LEDGE],
-                   fBinsTrackControlHistograms[var][UEDGE]);
+                   fBinsTrackControlHistograms[var][kBIN],
+                   fBinsTrackControlHistograms[var][kLEDGE],
+                   fBinsTrackControlHistograms[var][kUEDGE]);
       fTrackControlHistograms[var][ba]->SetStats(kFALSE);
       fTrackControlHistograms[var][ba]->SetFillColor(fillColor[ba]);
       fTrackControlHistograms[var][ba]->GetXaxis()->SetTitle(
@@ -490,9 +489,9 @@ void AliAnalysisTaskForStudents::BookControlHistograms() {
       fEventControlHistograms[var][ba] =
           new TH1F(fEventControlHistogramNames[var][ba][0],
                    fEventControlHistogramNames[var][ba][1],
-                   fBinsEventControlHistograms[var][BIN],
-                   fBinsEventControlHistograms[var][LEDGE],
-                   fBinsEventControlHistograms[var][UEDGE]);
+                   fBinsEventControlHistograms[var][kBIN],
+                   fBinsEventControlHistograms[var][kLEDGE],
+                   fBinsEventControlHistograms[var][kUEDGE]);
       fEventControlHistograms[var][ba]->SetStats(kFALSE);
       fEventControlHistograms[var][ba]->SetFillColor(fillColor[ba]);
       fEventControlHistograms[var][ba]->GetXaxis()->SetTitle(
@@ -511,9 +510,9 @@ void AliAnalysisTaskForStudents::BookFinalResultsHistograms() {
   for (int var = 0; var < LAST_EFINAL; ++var) {
     fFinalResultHistograms[var] = new TH1F(
         fFinalResultHistogramNames[var][0], fFinalResultHistogramNames[var][1],
-        fBinsFinalResultHistograms[var][BIN],
-        fBinsFinalResultHistograms[var][LEDGE],
-        fBinsFinalResultHistograms[var][UEDGE]);
+        fBinsFinalResultHistograms[var][kBIN],
+        fBinsFinalResultHistograms[var][kLEDGE],
+        fBinsFinalResultHistograms[var][kUEDGE]);
     fFinalResultHistograms[var]->SetStats(kFALSE);
     fFinalResultHistograms[var]->SetFillColor(colorFinalResult);
     fFinalResultHistograms[var]->GetXaxis()->SetTitle(
@@ -582,7 +581,7 @@ void AliAnalysisTaskForStudents::AODExec() {
           ->GetMultiplicityPercentile(fCentralitySelCriterion);
 
   /* fill centrality control histgrogram before event cut */
-  fEventControlHistograms[CEN][BEFORE]->Fill(centralityPercentile);
+  fEventControlHistograms[kCEN][kBEFORE]->Fill(centralityPercentile);
 
   /* cut event */
   if (!SurviveEventCut(aAOD)) {
@@ -590,7 +589,7 @@ void AliAnalysisTaskForStudents::AODExec() {
   }
 
   /* fill centrality control histogram after event cut */
-  fEventControlHistograms[CEN][AFTER]->Fill(centralityPercentile);
+  fEventControlHistograms[kCEN][kAFTER]->Fill(centralityPercentile);
 
   /* 2. Start analysis over AODs: */
 
@@ -619,9 +618,9 @@ void AliAnalysisTaskForStudents::AODExec() {
     Double_t eta = aTrack->Eta();
 
     /* fill track control histograms before cutting */
-    fTrackControlHistograms[PT][BEFORE]->Fill(pt);
-    fTrackControlHistograms[PHI][BEFORE]->Fill(phi);
-    fTrackControlHistograms[ETA][BEFORE]->Fill(eta);
+    fTrackControlHistograms[kPT][kBEFORE]->Fill(pt);
+    fTrackControlHistograms[kPHI][kBEFORE]->Fill(phi);
+    fTrackControlHistograms[kETA][kBEFORE]->Fill(eta);
     nTracks_beforeCut++;
 
     /* cut track */
@@ -630,9 +629,9 @@ void AliAnalysisTaskForStudents::AODExec() {
     }
 
     /* fill track control histograms after cutting */
-    fTrackControlHistograms[PT][AFTER]->Fill(pt);
-    fTrackControlHistograms[PHI][AFTER]->Fill(phi);
-    fTrackControlHistograms[ETA][AFTER]->Fill(eta);
+    fTrackControlHistograms[kPT][kAFTER]->Fill(pt);
+    fTrackControlHistograms[kPHI][kAFTER]->Fill(phi);
+    fTrackControlHistograms[kETA][kAFTER]->Fill(eta);
     nTracks_afterCut++;
 
     /* finally, fill azimuthal angels into vector */
@@ -640,8 +639,8 @@ void AliAnalysisTaskForStudents::AODExec() {
   }
 
   /* fill control histogram for Multiplicity after counting all tracks */
-  fEventControlHistograms[MUL][BEFORE]->Fill(nTracks_beforeCut);
-  fEventControlHistograms[MUL][AFTER]->Fill(nTracks_afterCut);
+  fEventControlHistograms[kMUL][kBEFORE]->Fill(nTracks_beforeCut);
+  fEventControlHistograms[kMUL][kAFTER]->Fill(nTracks_afterCut);
 
   // c) Reset event-by-event objects:
   // ...
@@ -692,10 +691,10 @@ Bool_t AliAnalysisTaskForStudents::SurviveEventCut(AliVEvent *ave) {
 
   /* cut event if it is not within the centrality percentile */
   /* use edges of the event control histogram for cutting */
-  if (MultiplicityPercentile < fBinsEventControlHistograms[CEN][LEDGE]) {
+  if (MultiplicityPercentile < fBinsEventControlHistograms[kCEN][kLEDGE]) {
     return kFALSE;
   }
-  if (MultiplicityPercentile > fBinsEventControlHistograms[CEN][UEDGE]) {
+  if (MultiplicityPercentile > fBinsEventControlHistograms[kCEN][kUEDGE]) {
     return kFALSE;
   }
 
@@ -706,22 +705,22 @@ Bool_t AliAnalysisTaskForStudents::SurviveEventCut(AliVEvent *ave) {
   }
 
   // cut event if primary vertex is too out of center
-  if (PrimaryVertex->GetX() < fPrimaryVertexCuts[X][MIN]) {
+  if (PrimaryVertex->GetX() < fPrimaryVertexCuts[kX][kMIN]) {
     return kFALSE;
   }
-  if (PrimaryVertex->GetX() > fPrimaryVertexCuts[X][MAX]) {
+  if (PrimaryVertex->GetX() > fPrimaryVertexCuts[kX][kMAX]) {
     return kFALSE;
   }
-  if (PrimaryVertex->GetY() < fPrimaryVertexCuts[Y][MIN]) {
+  if (PrimaryVertex->GetY() < fPrimaryVertexCuts[kY][kMIN]) {
     return kFALSE;
   }
-  if (PrimaryVertex->GetY() > fPrimaryVertexCuts[Y][MAX]) {
+  if (PrimaryVertex->GetY() > fPrimaryVertexCuts[kY][kMAX]) {
     return kFALSE;
   }
-  if (PrimaryVertex->GetZ() < fPrimaryVertexCuts[Z][MIN]) {
+  if (PrimaryVertex->GetZ() < fPrimaryVertexCuts[kZ][kMIN]) {
     return kFALSE;
   }
-  if (PrimaryVertex->GetZ() > fPrimaryVertexCuts[Z][MAX]) {
+  if (PrimaryVertex->GetZ() > fPrimaryVertexCuts[kZ][kMAX]) {
     return kFALSE;
   }
 
@@ -732,24 +731,24 @@ Bool_t AliAnalysisTaskForStudents::SurviveTrackCut(AliAODTrack *aTrack) {
   /* check if current track survives track cut */
 
   /* cut PT */
-  if (aTrack->Pt() < fTrackCuts[PT][MIN]) {
+  if (aTrack->Pt() < fTrackCuts[kPT][kMIN]) {
     return kFALSE;
   }
-  if (aTrack->Pt() > fTrackCuts[PT][MAX]) {
+  if (aTrack->Pt() > fTrackCuts[kPT][kMAX]) {
     return kFALSE;
   }
   /* cut PHI */
-  if (aTrack->Phi() < fTrackCuts[PHI][MIN]) {
+  if (aTrack->Phi() < fTrackCuts[kPHI][kMIN]) {
     return kFALSE;
   }
-  if (aTrack->Phi() > fTrackCuts[PHI][MAX]) {
+  if (aTrack->Phi() > fTrackCuts[kPHI][kMAX]) {
     return kFALSE;
   }
   /* cut ETA */
-  if (aTrack->Eta() < fTrackCuts[ETA][MIN]) {
+  if (aTrack->Eta() < fTrackCuts[kETA][kMIN]) {
     return kFALSE;
   }
-  if (aTrack->Eta() > fTrackCuts[ETA][MAX]) {
+  if (aTrack->Eta() > fTrackCuts[kETA][kMAX]) {
     return kFALSE;
   }
 
@@ -782,8 +781,8 @@ Int_t AliAnalysisTaskForStudents::GetMCNumberOfParticlesPerEvent() {
     return fMCNumberOfParticlesPerEvent;
   }
 
-  return fMCRNG->Uniform(fMCNumberOfParticlesPerEventRange[MIN],
-                         fMCNumberOfParticlesPerEventRange[MAX]);
+  return fMCRNG->Uniform(fMCNumberOfParticlesPerEventRange[kMIN],
+                         fMCNumberOfParticlesPerEventRange[kMAX]);
 };
 
 void AliAnalysisTaskForStudents::CalculateQvectors() {

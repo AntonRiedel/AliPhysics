@@ -2,7 +2,7 @@
  * File              : AliAnalysisTaskForStudents.h
  * Author            : Anton Riedel <anton.riedel@tum.de>
  * Date              : 07.05.2021
- * Last Modified Date: 03.06.2021
+ * Last Modified Date: 04.06.2021
  * Last Modified By  : Anton Riedel <anton.riedel@tum.de>
  */
 
@@ -34,14 +34,14 @@ const Int_t kMaxCorrelator = 8;
 const Int_t kMaxPower = kMaxCorrelator + 1;
 
 /* enumerations */
-enum eEvent { CEN, MUL, LAST_EEVENT };
-enum eTrack { PT, PHI, ETA, LAST_ETRACK };
-enum eFinal { PHIAVG, LAST_EFINAL };
-enum eBins { BIN, LEDGE, UEDGE, LAST_EBINS };
-enum eName { NAME, TITLE, XAXIS, LAST_ENAME };
-enum eBeforeAfter { BEFORE, AFTER, LAST_EBEFOREAFTER };
-enum eMinMax { MIN, MAX, LAST_EMINMAX };
-enum eXYZ { X, Y, Z, LAST_EXYZ };
+enum kEvent { kCEN, kMUL, LAST_EEVENT };
+enum kTrack { kPT, kPHI, kETA, LAST_ETRACK };
+enum kFinal { kPHIAVG, LAST_EFINAL };
+enum kBins { kBIN, kLEDGE, kUEDGE, LAST_EBINS };
+enum kName { kNAME, kTITLE, kXAXIS, LAST_ENAME };
+enum kBeforeAfter { kBEFORE, kAFTER, LAST_EBEFOREAFTER };
+enum kMinMax { kMIN, kMAX, LAST_EMINMAX };
+enum kXYZ { kX, kY, kZ, LAST_EXYZ };
 
 class AliAnalysisTaskForStudents : public AliAnalysisTaskSE {
 public:
@@ -114,37 +114,37 @@ public:
   TList *GetFinalResultsList() const { return this->fFinalResultsList; }
 
   void SetPtBinning(Int_t nbins, Double_t min, Double_t max) {
-    this->fBinsTrackControlHistograms[PT][BIN] = nbins;
-    this->fBinsTrackControlHistograms[PT][LEDGE] = min;
-    this->fBinsTrackControlHistograms[PT][UEDGE] = max;
+    this->fBinsTrackControlHistograms[kPT][kBIN] = nbins;
+    this->fBinsTrackControlHistograms[kPT][kLEDGE] = min;
+    this->fBinsTrackControlHistograms[kPT][kUEDGE] = max;
   };
   void SetPhiBinning(Int_t nbins, Double_t min, Double_t max) {
-    this->fBinsTrackControlHistograms[PHI][BIN] = nbins;
-    this->fBinsTrackControlHistograms[PHI][LEDGE] = min;
-    this->fBinsTrackControlHistograms[PHI][UEDGE] = max;
+    this->fBinsTrackControlHistograms[kPHI][kBIN] = nbins;
+    this->fBinsTrackControlHistograms[kPHI][kLEDGE] = min;
+    this->fBinsTrackControlHistograms[kPHI][kUEDGE] = max;
   };
   void SetEtaBinning(Int_t nbins, Double_t min, Double_t max) {
-    this->fBinsTrackControlHistograms[ETA][BIN] = nbins;
-    this->fBinsTrackControlHistograms[ETA][LEDGE] = min;
-    this->fBinsTrackControlHistograms[ETA][UEDGE] = max;
+    this->fBinsTrackControlHistograms[kETA][kBIN] = nbins;
+    this->fBinsTrackControlHistograms[kETA][kLEDGE] = min;
+    this->fBinsTrackControlHistograms[kETA][kUEDGE] = max;
   };
 
   void SetCenBinning(Int_t nbins, Double_t min, Double_t max) {
-    this->fBinsEventControlHistograms[CEN][BIN] = nbins;
-    this->fBinsEventControlHistograms[CEN][LEDGE] = min;
-    this->fBinsEventControlHistograms[CEN][UEDGE] = max;
+    this->fBinsEventControlHistograms[kCEN][kBIN] = nbins;
+    this->fBinsEventControlHistograms[kCEN][kLEDGE] = min;
+    this->fBinsEventControlHistograms[kCEN][kUEDGE] = max;
   };
 
   void SetMulBinning(Int_t nbins, Double_t min, Double_t max) {
-    this->fBinsEventControlHistograms[MUL][BIN] = nbins;
-    this->fBinsEventControlHistograms[MUL][LEDGE] = min;
-    this->fBinsEventControlHistograms[MUL][UEDGE] = max;
+    this->fBinsEventControlHistograms[kMUL][kBIN] = nbins;
+    this->fBinsEventControlHistograms[kMUL][kLEDGE] = min;
+    this->fBinsEventControlHistograms[kMUL][kUEDGE] = max;
   };
 
   void SetAveragePhiBinning(Int_t nbins, Double_t min, Double_t max) {
-    this->fBinsEventControlHistograms[PHIAVG][BIN] = nbins;
-    this->fBinsEventControlHistograms[PHIAVG][LEDGE] = min;
-    this->fBinsEventControlHistograms[PHIAVG][UEDGE] = max;
+    this->fBinsEventControlHistograms[kPHIAVG][kBIN] = nbins;
+    this->fBinsEventControlHistograms[kPHIAVG][kLEDGE] = min;
+    this->fBinsEventControlHistograms[kPHIAVG][kUEDGE] = max;
   };
 
   void SetCentralitySelCriterion(TString SelCriterion) {
@@ -152,33 +152,33 @@ public:
   }
 
   void SetPtCuts(Double_t min, Double_t max) {
-    this->fTrackCuts[PT][MIN] = min;
-    this->fTrackCuts[PT][MAX] = max;
+    this->fTrackCuts[kPT][kMIN] = min;
+    this->fTrackCuts[kPT][kMAX] = max;
   }
 
   void SetPhiCuts(Double_t min, Double_t max) {
-    this->fTrackCuts[PHI][MIN] = min;
-    this->fTrackCuts[PHI][MAX] = max;
+    this->fTrackCuts[kPHI][kMIN] = min;
+    this->fTrackCuts[kPHI][kMAX] = max;
   }
 
   void SetEtaCuts(Double_t min, Double_t max) {
-    this->fTrackCuts[ETA][MIN] = min;
-    this->fTrackCuts[ETA][MAX] = max;
+    this->fTrackCuts[kETA][kMIN] = min;
+    this->fTrackCuts[kETA][kMAX] = max;
   }
 
   void SetPrimaryVertexXCuts(Double_t min, Double_t max) {
-    this->fPrimaryVertexCuts[X][MIN] = min;
-    this->fPrimaryVertexCuts[X][MAX] = max;
+    this->fPrimaryVertexCuts[kX][kMIN] = min;
+    this->fPrimaryVertexCuts[kX][kMAX] = max;
   }
 
   void SetPrimaryVertexYCuts(Double_t min, Double_t max) {
-    this->fPrimaryVertexCuts[Y][MIN] = min;
-    this->fPrimaryVertexCuts[Y][MAX] = max;
+    this->fPrimaryVertexCuts[kY][kMIN] = min;
+    this->fPrimaryVertexCuts[kY][kMAX] = max;
   }
 
   void SetPrimaryVertexZCuts(Double_t min, Double_t max) {
-    this->fPrimaryVertexCuts[Z][MIN] = min;
-    this->fPrimaryVertexCuts[Z][MAX] = max;
+    this->fPrimaryVertexCuts[kZ][kMIN] = min;
+    this->fPrimaryVertexCuts[kZ][kMAX] = max;
   }
 
   void SetFilterbit(Int_t Filterbit) { this->fFilterbit = Filterbit; }
@@ -195,16 +195,16 @@ public:
     fMCFlowHarmonics = array;
   }
   void SetMCPdfRange(Double_t min, Double_t max) {
-    fMCPdfRange[MIN] = min;
-    fMCPdfRange[MAX] = max;
+    fMCPdfRange[kMIN] = min;
+    fMCPdfRange[kMAX] = max;
   }
   void SetMCNumberOfParticlesPerEvent(Int_t n) {
     fMCNumberOfParticlesPerEvent = n;
   }
   void SetMCNumberOfParticlesPerEventRange(Int_t min, Int_t max) {
     fMCNumberOfParticlesPerEventFluctuations = kTRUE;
-    fMCNumberOfParticlesPerEventRange[MIN] = min;
-    fMCNumberOfParticlesPerEventRange[MAX] = max;
+    fMCNumberOfParticlesPerEventRange[kMIN] = min;
+    fMCNumberOfParticlesPerEventRange[kMAX] = max;
   }
 
 private:
