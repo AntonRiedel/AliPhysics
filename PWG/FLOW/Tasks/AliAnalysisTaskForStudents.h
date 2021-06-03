@@ -2,7 +2,7 @@
  * File              : AliAnalysisTaskForStudents.h
  * Author            : Anton Riedel <anton.riedel@tum.de>
  * Date              : 07.05.2021
- * Last Modified Date: 02.06.2021
+ * Last Modified Date: 03.06.2021
  * Last Modified By  : Anton Riedel <anton.riedel@tum.de>
  */
 
@@ -30,12 +30,12 @@
 
 /* global constants */
 const Int_t kMaxHarmonic = 6;
-const Int_t kMaxCorrelator = 8;
+const Int_t kMaxCorrelator = 6;
+const Int_t kMaxPower = kMaxCorrelator + 1;
 
 /* enumerations */
 enum eEvent { CEN, MUL, LAST_EEVENT };
 enum eTrack { PT, PHI, ETA, LAST_ETRACK };
-enum eMC { MCPHI, MCPSI, MCNUM, MCMUL, LAST_EMC };
 enum eFinal { PHIAVG, LAST_EFINAL };
 enum eBins { BIN, LEDGE, UEDGE, LAST_EBINS };
 enum eName { NAME, TITLE, XAXIS, LAST_ENAME };
@@ -65,55 +65,30 @@ public:
   virtual void BookAndNestAllLists();
   virtual void BookControlHistograms();
   virtual void BookFinalResultsHistograms();
+  virtual void BookMCObjects();
 
   /* split calls in UserExec() depending on flags */
   virtual void AODExec();
   virtual void MCOnTheFlyExec();
 
-  /* Methods called in AODExec(Option_t *): */
+  /* methods called in AODExec(): */
   virtual Bool_t SurviveEventCut(AliVEvent *ave);
   virtual Bool_t SurviveTrackCut(AliAODTrack *aTrack);
+
+  /* methods called MCOnTheFlyExec() */
+  virtual void MCPdfSymmetryPlanesSetup();
+  virtual Int_t GetMCNumberOfParticlesPerEvent();
+
+  /* Methods for qvector */
+  void CalculateQvectors();
+  TComplex Q(Int_t n, Int_t p);
+  TComplex Two(Int_t n1, Int_t n2);
+  TComplex Three(Int_t n1, Int_t n2, Int_t n3);
 
   /* GetPointers Methods in case we need to manually trigger Terminate() */
   virtual void GetPointers(TList *list);
   virtual void GetPointersForControlHistograms();
   virtual void GetPointersForOutputHistograms();
-
-  /* methods called for on the fly MC anaylsis */
-  virtual void MCPdfFlowHarmonicsSetup();
-  virtual void MCPdfSymmetryPlanesSetup();
-  virtual Int_t GetMCNumberOfParticlesPerEvent();
-
-  /* setters and getters for MC analsys */
-  void SetMCAnalysis(Bool_t mc) { this->fMCAnalaysis = mc; }
-  void SetMCRNGSeed(Int_t seed) { this->fMCRNGSeed = seed; }
-  void SetMCFlowHarmonics(TArrayD *array) {
-    if (array->GetSize() > fMaxHarmonic) {
-      std::cout << __LINE__ << ": Array exceeds maximum allowed harmonic"
-                << std::endl;
-      Fatal("SetFlowHarmonics", "Too many harmonics");
-    }
-    fMCFlowHarmonics = array;
-  }
-  void SetMCPdfRange(Double_t min, Double_t max) {
-    fMCPdfRange[MIN] = min;
-    fMCPdfRange[MAX] = max;
-  }
-  void SetMCNumberOfEvents(Int_t n) { fMCNumberOfEvents = n; }
-  void SetMCNumberOfParticlesPerEventFluctuations(Bool_t option) {
-    fMCNumberOfParticlesPerEventFluctuations = option;
-  }
-  void SetMCNumberOfParticlesPerEvent(Int_t n) {
-    fMCNumberOfParticlesPerEvent = n;
-  }
-  void SetMCNumberOfParticlesPerEventRange(Int_t min, Int_t max) {
-    fMCNumberOfParticlesPerEventRange[MIN] = min;
-    fMCNumberOfParticlesPerEventRange[MAX] = max;
-  }
-
-  /* Methods for qvector */
-  void CalculateQvectors();
-  TComplex Q(Int_t n, Int_t p);
 
   /* Setters and getters for data analysis*/
   void SetControlHistogramsList(TList *const chl) {
@@ -195,6 +170,32 @@ public:
 
   void SetFilterbit(Int_t Filterbit) { this->fFilterbit = Filterbit; }
 
+  /* setters and getters for MC analsys */
+  void SetMCAnalysis(Bool_t mc) { this->fMCAnalaysis = mc; }
+  void SetMCRNGSeed(Int_t seed) { this->fMCRNGSeed = seed; }
+  void SetMCFlowHarmonics(TArrayD *array) {
+    if (array->GetSize() > kMaxHarmonic) {
+      std::cout << __LINE__ << ": Array exceeds maximum allowed harmonic"
+                << std::endl;
+      Fatal("SetFlowHarmonics", "Too many harmonics");
+    }
+    fMCFlowHarmonics = array;
+  }
+  void SetMCPdfRange(Double_t min, Double_t max) {
+    fMCPdfRange[MIN] = min;
+    fMCPdfRange[MAX] = max;
+  }
+  void SetMCNumberOfParticlesPerEventFluctuations(Bool_t option) {
+    fMCNumberOfParticlesPerEventFluctuations = option;
+  }
+  void SetMCNumberOfParticlesPerEvent(Int_t n) {
+    fMCNumberOfParticlesPerEvent = n;
+  }
+  void SetMCNumberOfParticlesPerEventRange(Int_t min, Int_t max) {
+    fMCNumberOfParticlesPerEventRange[MIN] = min;
+    fMCNumberOfParticlesPerEventRange[MAX] = max;
+  }
+
 private:
   AliAnalysisTaskForStudents(const AliAnalysisTaskForStudents &aatmpf);
   AliAnalysisTaskForStudents &
@@ -231,6 +232,7 @@ private:
   TH1F *fFinalResultHistograms[LAST_EFINAL];
   TString fFinalResultHistogramNames[LAST_EFINAL][LAST_ENAME];
   Double_t fBinsFinalResultHistograms[LAST_EFINAL][LAST_EBINS];
+  TProfile *fFinalResultProfile;
 
   /* Monte Carlo analysis */
   TList *fMCAnalysisList;
@@ -242,22 +244,17 @@ private:
   TString fMCPdfName;
   Double_t fMCPdfRange[LAST_EMINMAX];
   TArrayD *fMCFlowHarmonics;
-  Int_t fMCNumberOfEvents;
   Bool_t fMCNumberOfParticlesPerEventFluctuations;
   Int_t fMCNumberOfParticlesPerEvent;
   Int_t fMCNumberOfParticlesPerEventRange[LAST_EMINMAX];
-  TH1F *fMCControlHistograms[LAST_EMC];
-  TString fMCControlHistogramNames[LAST_EMC][LAST_ENAME];
-  Double_t fMCBinsControlHistogram[LAST_EMC][LAST_EBINS];
 
   /* qvectors */
   TList *fQvectorList;
-  Int_t fMaxHarmonic;
-  Int_t fMaxCorrelator;
-  TComplex fQvector[kMaxHarmonic][kMaxCorrelator];
+  TComplex fQvector[kMaxHarmonic][kMaxPower];
+  std::vector<Double_t> fPhi;
 
   /* Increase this counter in each new version: */
-  ClassDef(AliAnalysisTaskForStudents, 3);
+  ClassDef(AliAnalysisTaskForStudents, 4);
 };
 
 #endif
