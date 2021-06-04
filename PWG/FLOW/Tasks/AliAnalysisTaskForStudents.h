@@ -29,14 +29,15 @@
 #include "TString.h"
 
 /* global constants */
-const Int_t kMaxHarmonic = 6;
-const Int_t kMaxCorrelator = 8;
-const Int_t kMaxPower = kMaxCorrelator + 1;
+const Int_t kMaxHarmonic = 20;
+const Int_t kMaxCorrelator = 20;
+const Int_t kMaxPower = 20;
 
 /* enumerations */
 enum kEvent { kCEN, kMUL, LAST_EEVENT };
 enum kTrack { kPT, kPHI, kETA, LAST_ETRACK };
-enum kFinal { kPHIAVG, LAST_EFINAL };
+enum kFinalHist { kPHIAVG, LAST_EFINALHIST };
+enum kFinalProfile { kHARDATA, kHARTHEO, LAST_EFINALPROFILE };
 enum kBins { kBIN, kLEDGE, kUEDGE, LAST_EBINS };
 enum kName { kNAME, kTITLE, kXAXIS, LAST_ENAME };
 enum kBeforeAfter { kBEFORE, kAFTER, LAST_EBEFOREAFTER };
@@ -59,12 +60,14 @@ public:
   virtual void InitializeArraysForEventControlHistograms();
   virtual void InitializeArraysForCuts();
   virtual void InitializeArraysForFinalResultHistograms();
+  virtual void InitializeArraysForFinalResultProfiles();
   virtual void InitializeArraysForMCAnalysis();
 
   /* Methods called in UserCreateOutputObjects(): */
   virtual void BookAndNestAllLists();
   virtual void BookControlHistograms();
-  virtual void BookFinalResultsHistograms();
+  virtual void BookFinalResultHistograms();
+  virtual void BookFinalResultProfiles();
   virtual void BookMCObjects();
 
   /* split calls in UserExec() depending on flags */
@@ -88,14 +91,17 @@ public:
   TComplex Five(Int_t n1, Int_t n2, Int_t n3, Int_t n4, Int_t n5);
   TComplex Six(Int_t n1, Int_t n2, Int_t n3, Int_t n4, Int_t n5, Int_t n6);
   TComplex Recursion(Int_t n, Int_t *harmonic, Int_t mult = 1, Int_t skip = 0);
+  Double_t CombinatorialWeight(Int_t n);
 
   /* methods for computing nested loops */
   TComplex TwoNestedLoops(Int_t n1, Int_t n2);
-  /* void ThreeNestedLoops(Int_t n1, Int_t n2, Int_t n3); */
-  /* void FourNestedLoops(Int_t n1, Int_t n2, Int_t n3, Int_t n4); */
-  /* void FiveNestedLoops(Int_t n1, Int_t n2, Int_t n3, Int_t n4, Int_t n5); */
-  /* void SixNestedLoops(Int_t n1, Int_t n2, Int_t n3, Int_t n4, Int_t n5, */
-  /*                     Int_t n6); */
+  TComplex ThreeNestedLoops(Int_t n1, Int_t n2, Int_t n3);
+  TComplex FourNestedLoops(Int_t n1, Int_t n2, Int_t n3, Int_t n4);
+  /* TComplex FiveNestedLoops(Int_t n1, Int_t n2, Int_t n3, Int_t n4, Int_t n5);
+   */
+  /* TComplex SixNestedLoops(Int_t n1, Int_t n2, Int_t n3, Int_t n4, Int_t n5,
+   */
+  /*                         Int_t n6); */
 
   /* GetPointers Methods in case we need to manually trigger Terminate()
    */
@@ -194,6 +200,14 @@ public:
     }
     fMCFlowHarmonics = array;
   }
+  void SetMCCumulants(std::vector<std::vector<Int_t>> correlators) {
+    this->fMCCorrelators = correlators;
+    for (int i = 0; i < LAST_EFINALPROFILE; ++i) {
+      fBinsFinalResultProfiles[i][kBIN] = fMCCorrelators.size();
+      fBinsFinalResultProfiles[i][kLEDGE] = 0;
+      fBinsFinalResultProfiles[i][kUEDGE] = fMCCorrelators.size();
+    }
+  }
   void SetMCPdfRange(Double_t min, Double_t max) {
     fMCPdfRange[kMIN] = min;
     fMCPdfRange[kMAX] = max;
@@ -241,10 +255,12 @@ private:
   TList *fFinalResultsList;
   TString fFinalResultsListName;
   /* array holding final result histograms */
-  TH1F *fFinalResultHistograms[LAST_EFINAL];
-  TString fFinalResultHistogramNames[LAST_EFINAL][LAST_ENAME];
-  Double_t fBinsFinalResultHistograms[LAST_EFINAL][LAST_EBINS];
-  TProfile *fFinalResultProfile;
+  TH1F *fFinalResultHistograms[LAST_EFINALHIST];
+  TString fFinalResultHistogramNames[LAST_EFINALHIST][LAST_ENAME];
+  Double_t fBinsFinalResultHistograms[LAST_EFINALHIST][LAST_EBINS];
+  TProfile *fFinalResultProfiles[LAST_EFINALPROFILE];
+  TString fFinalResultProfileNames[LAST_EFINALPROFILE][LAST_ENAME];
+  Double_t fBinsFinalResultProfiles[LAST_EFINALPROFILE][LAST_EBINS];
 
   /* Monte Carlo analysis */
   TList *fMCAnalysisList;
@@ -259,11 +275,14 @@ private:
   Bool_t fMCNumberOfParticlesPerEventFluctuations;
   Int_t fMCNumberOfParticlesPerEvent;
   Int_t fMCNumberOfParticlesPerEventRange[LAST_EMINMAX];
+  std::vector<std::vector<Int_t>> fMCCorrelators;
 
   /* qvectors */
   TList *fQvectorList;
   TComplex fQvector[kMaxHarmonic][kMaxPower];
   std::vector<Double_t> fPhi;
+  std::vector<Double_t> fWeights;
+  Bool_t fUseWeights;
 
   /* Increase this counter in each new version: */
   ClassDef(AliAnalysisTaskForStudents, 4);
