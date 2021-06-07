@@ -2,7 +2,7 @@
  * File              : AliAnalysisTaskForStudents.cxx
  * Author            : Anton Riedel <anton.riedel@tum.de>
  * Date              : 07.05.2021
- * Last Modified Date: 04.06.2021
+ * Last Modified Date: 05.06.2021
  * Last Modified By  : Anton Riedel <anton.riedel@tum.de>
  */
 
@@ -28,6 +28,7 @@
 #include "AliMultSelection.h"
 #include "TColor.h"
 #include "TFile.h"
+#include <TMath.h>
 #include <cstdlib>
 #include <iostream>
 
@@ -52,7 +53,8 @@ ClassImp(AliAnalysisTaskForStudents)
       fMCNumberOfParticlesPerEventFluctuations(kFALSE),
       fMCNumberOfParticlesPerEvent(500), fMCCorrelators({}),
       /* qvectors */
-      fQvectorList(nullptr), fPhi({}), fWeights({}), fUseWeights(kFALSE) {
+      fQvectorList(nullptr), fPhi({}), fWeights({}), fUseWeights(kFALSE),
+      fReducedAcceptance(1.), fResetWeights(kFALSE) {
   /* Constructor */
 
   AliDebug(2, "AliAnalysisTaskForStudents::AliAnalysisTaskForStudents(const "
@@ -102,7 +104,8 @@ AliAnalysisTaskForStudents::AliAnalysisTaskForStudents()
       fMCNumberOfParticlesPerEventFluctuations(kFALSE),
       fMCNumberOfParticlesPerEvent(500), fMCCorrelators({}),
       /* qvectors */
-      fQvectorList(nullptr), fPhi({}), fWeights({}), fUseWeights(kFALSE) {
+      fQvectorList(nullptr), fPhi({}), fWeights({}), fUseWeights(kFALSE),
+      fReducedAcceptance(1.), fResetWeights(kFALSE) {
   /* Dummy constructor */
   /* initialze arrays in dummy constructor !!!! */
   this->InitializeArrays();
@@ -162,6 +165,8 @@ void AliAnalysisTaskForStudents::UserExec(Option_t *) {
 
   /* clear azimuthal angles */
   fPhi.clear();
+  /* clear weights */
+  fWeights.clear();
 
   if (fMCAnalaysis) {
     /* MC analysis */
@@ -169,6 +174,11 @@ void AliAnalysisTaskForStudents::UserExec(Option_t *) {
   } else {
     /* real data */
     AODExec();
+  }
+
+  /* reset weights if required*/
+  if (fResetWeights) {
+    std::fill(fWeights.begin(), fWeights.end(), 1.);
   }
 
   /* calculate all qvectors */
@@ -179,34 +189,41 @@ void AliAnalysisTaskForStudents::UserExec(Option_t *) {
     switch (static_cast<int>(V.size())) {
     case 2:
       fFinalResultProfiles[kHARDATA]->Fill(
-          V.size() - 1.5, Two(V.at(0), V.at(1)).Re() / CombinatorialWeight(2));
+          V.size() - 1.5, Two(V.at(0), V.at(1)).Re() / Two(0, 0).Re(),
+          Two(0, 0).Re());
       break;
     case 3:
       fFinalResultProfiles[kHARDATA]->Fill(
           V.size() - 1.5,
-          Three(V.at(0), V.at(1), V.at(2)).Re() / CombinatorialWeight(3));
+          Three(V.at(0), V.at(1), V.at(2)).Re() / Three(0, 0, 0).Re(),
+          Three(0, 0, 0).Re());
       break;
     case 4:
       fFinalResultProfiles[kHARDATA]->Fill(
-          V.size() - 1.5, Four(V.at(0), V.at(1), V.at(2), V.at(3)).Re() /
-                              CombinatorialWeight(4));
+          V.size() - 1.5,
+          Four(V.at(0), V.at(1), V.at(2), V.at(3)).Re() / Four(0, 0, 0, 0).Re(),
+          Four(0, 0, 0, 0).Re());
       break;
     case 5:
       fFinalResultProfiles[kHARDATA]->Fill(
           V.size() - 1.5,
           Five(V.at(0), V.at(1), V.at(2), V.at(3), V.at(4)).Re() /
-              CombinatorialWeight(5));
+              Five(0, 0, 0, 0, 0).Re(),
+          Five(0, 0, 0, 0, 0).Re());
       break;
     case 6:
       fFinalResultProfiles[kHARDATA]->Fill(
           V.size() - 1.5,
           Six(V.at(0), V.at(1), V.at(2), V.at(3), V.at(4), V.at(5)).Re() /
-              CombinatorialWeight(6));
+              Six(0, 0, 0, 0, 0, 0).Re(),
+          Six(0, 0, 0, 0, 0, 0).Re());
       break;
     default:
-      fFinalResultProfiles[kHARDATA]->Fill(V.size() - 1.5,
-                                           Recursion(V.size(), V.data()).Re() /
-                                               CombinatorialWeight(V.size()));
+      fFinalResultProfiles[kHARDATA]->Fill(
+          V.size() - 1.5,
+          Recursion(V.size(), V.data()).Re() /
+              Recursion(V.size(), std::vector<Int_t>(V.size(), 0).data()).Re(),
+          Recursion(V.size(), std::vector<Int_t>(V.size(), 0).data()).Re());
     }
   }
 }
@@ -238,7 +255,8 @@ void AliAnalysisTaskForStudents::Terminate(Option_t *) {
         v *= fMCFlowHarmonics->GetAt(abs(i) - 1);
       }
       fFinalResultProfiles[kHARTHEO]->Fill(V.size() - 1.5, v);
-      std::cout << "v_" << V.size() << std::endl
+      std::cout << std::scientific << std::setprecision(6) << "v_" << V.size()
+                << std::endl
                 << "THEO="
                 << fFinalResultProfiles[kHARTHEO]->GetBinContent(V.size() - 1)
                 << std::endl
@@ -251,12 +269,12 @@ void AliAnalysisTaskForStudents::Terminate(Option_t *) {
 
 void AliAnalysisTaskForStudents::InitializeArrays() {
   /* Initialize all data members which are arrays in this method */
-  InitializeArraysForMCAnalysis();
   InitializeArraysForTrackControlHistograms();
   InitializeArraysForEventControlHistograms();
   InitializeArraysForCuts();
   InitializeArraysForFinalResultHistograms();
   InitializeArraysForFinalResultProfiles();
+  InitializeArraysForMCAnalysis();
 }
 
 void AliAnalysisTaskForStudents::InitializeArraysForTrackControlHistograms() {
@@ -491,6 +509,12 @@ void AliAnalysisTaskForStudents::InitializeArraysForMCAnalysis() {
     fMCNumberOfParticlesPerEventRange[i] =
         MCNumberOfParticlesPerEventRangeDefaults[i];
   }
+
+  /* range of reduced acceptance */
+  Double_t ReducedAcceptanceRangeDefault[LAST_EMINMAX] = {0., TMath::TwoPi()};
+  for (int i = 0; i < LAST_EMINMAX; ++i) {
+    fReducedAcceptanceRange[i] = ReducedAcceptanceRangeDefault[i];
+  }
 }
 
 void AliAnalysisTaskForStudents::BookAndNestAllLists() {
@@ -599,6 +623,7 @@ void AliAnalysisTaskForStudents::BookFinalResultProfiles() {
     fFinalResultProfiles[var]->SetStats(kFALSE);
     fFinalResultProfiles[var]->GetXaxis()->SetTitle(
         fFinalResultProfileNames[var][2]);
+    fFinalResultProfiles[var]->Sumw2();
     fFinalResultsList->Add(fFinalResultProfiles[var]);
   }
 }
@@ -739,8 +764,24 @@ void AliAnalysisTaskForStudents::MCOnTheFlyExec() {
   /* set symmetry planes for MC analysis */
   MCPdfSymmetryPlanesSetup();
   /* loop over all particles in an event */
+  Double_t Phi = 0.;
   for (int i = 0; i < GetMCNumberOfParticlesPerEvent(); ++i) {
-    fPhi.push_back(fMCPdf->GetRandom());
+    Phi = fMCPdf->GetRandom();
+
+    if (fUseWeights) {
+      if (Phi > fReducedAcceptanceRange[kMIN] &&
+          Phi < fReducedAcceptanceRange[kMAX]) {
+        if (fMCRNG->Uniform() < fReducedAcceptance) {
+          fPhi.push_back(Phi);
+          fWeights.push_back(1 / fReducedAcceptance);
+        }
+      } else {
+        fPhi.push_back(Phi);
+        fWeights.push_back(1.);
+      }
+    } else {
+      fPhi.push_back(fMCPdf->GetRandom());
+    }
   }
 }
 
@@ -1216,8 +1257,9 @@ TComplex AliAnalysisTaskForStudents::Six(Int_t n1, Int_t n2, Int_t n3, Int_t n4,
 TComplex AliAnalysisTaskForStudents::Recursion(Int_t n, Int_t *harmonic,
                                                Int_t mult /* = 1*/,
                                                Int_t skip /*= 0*/) {
-  // Calculate multi-particle correlators by using recursion (an improved faster
-  // version) originally developed by Kristjan Gulbrandsen (gulbrand@nbi.dk).
+  // Calculate multi-particle correlators by using recursion (an improved
+  // faster version) originally developed by Kristjan Gulbrandsen
+  // (gulbrand@nbi.dk).
 
   Int_t nm1 = n - 1;
   TComplex c(Q(harmonic[nm1], mult));

@@ -2,7 +2,7 @@
  * File              : AliAnalysisTaskForStudents.h
  * Author            : Anton Riedel <anton.riedel@tum.de>
  * Date              : 07.05.2021
- * Last Modified Date: 04.06.2021
+ * Last Modified Date: 07.06.2021
  * Last Modified By  : Anton Riedel <anton.riedel@tum.de>
  */
 
@@ -109,7 +109,7 @@ public:
   virtual void GetPointersForControlHistograms();
   virtual void GetPointersForOutputHistograms();
 
-  /* Setters and getters for data analysis*/
+  /* Setters and getters for data analysis */
   void SetControlHistogramsList(TList *const chl) {
     this->fControlHistogramsList = chl;
   };
@@ -191,7 +191,10 @@ public:
 
   /* setters and getters for MC analsys */
   void SetMCAnalysis(Bool_t mc) { this->fMCAnalaysis = mc; }
-  void SetMCRNGSeed(UInt_t seed) { this->fMCRNGSeed = seed; }
+  void SetMCRNGSeed(UInt_t seed) {
+    this->fMCRNGSeed = seed;
+    gRandom->SetSeed(seed);
+  }
   void SetMCFlowHarmonics(TArrayD *array) {
     if (array->GetSize() > kMaxHarmonic) {
       std::cout << __LINE__ << ": Array exceeds maximum allowed harmonic"
@@ -200,7 +203,7 @@ public:
     }
     fMCFlowHarmonics = array;
   }
-  void SetMCCumulants(std::vector<std::vector<Int_t>> correlators) {
+  void SetMCCorrelators(std::vector<std::vector<Int_t>> correlators) {
     this->fMCCorrelators = correlators;
     for (int i = 0; i < LAST_EFINALPROFILE; ++i) {
       fBinsFinalResultProfiles[i][kBIN] = fMCCorrelators.size();
@@ -220,6 +223,13 @@ public:
     fMCNumberOfParticlesPerEventRange[kMIN] = min;
     fMCNumberOfParticlesPerEventRange[kMAX] = max;
   }
+  void SetMCNonUniformAcceptance(Double_t min, Double_t max, Double_t reduced) {
+    fUseWeights = kTRUE;
+    fReducedAcceptanceRange[kMIN] = min;
+    fReducedAcceptanceRange[kMAX] = max;
+    fReducedAcceptance = reduced;
+  };
+  void SetMCResetWeights(Bool_t option) { fResetWeights = option; }
 
 private:
   AliAnalysisTaskForStudents(const AliAnalysisTaskForStudents &aatmpf);
@@ -283,6 +293,9 @@ private:
   std::vector<Double_t> fPhi;
   std::vector<Double_t> fWeights;
   Bool_t fUseWeights;
+  Double_t fReducedAcceptance;
+  Double_t fReducedAcceptanceRange[LAST_EMINMAX];
+  Bool_t fResetWeights;
 
   /* Increase this counter in each new version: */
   ClassDef(AliAnalysisTaskForStudents, 4);
