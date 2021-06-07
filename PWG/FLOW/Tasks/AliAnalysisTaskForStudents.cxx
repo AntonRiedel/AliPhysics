@@ -2,7 +2,7 @@
  * File              : AliAnalysisTaskForStudents.cxx
  * Author            : Anton Riedel <anton.riedel@tum.de>
  * Date              : 07.05.2021
- * Last Modified Date: 05.06.2021
+ * Last Modified Date: 07.06.2021
  * Last Modified By  : Anton Riedel <anton.riedel@tum.de>
  */
 
@@ -780,7 +780,7 @@ void AliAnalysisTaskForStudents::MCOnTheFlyExec() {
         fWeights.push_back(1.);
       }
     } else {
-      fPhi.push_back(fMCPdf->GetRandom());
+      fPhi.push_back(Phi);
     }
   }
 }
