@@ -2,7 +2,7 @@
  * File              : AliAnalysisTaskForStudents.cxx
  * Author            : Anton Riedel <anton.riedel@tum.de>
  * Date              : 07.05.2021
- * Last Modified Date: 07.06.2021
+ * Last Modified Date: 08.06.2021
  * Last Modified By  : Anton Riedel <anton.riedel@tum.de>
  */
 
@@ -48,7 +48,7 @@ ClassImp(AliAnalysisTaskForStudents)
       fFinalResultsList(nullptr), fFinalResultsListName("FinalResults"),
       /* flags for MC analysis */
       fMCAnalysisList(nullptr), fMCAnalysisListName("MCAnalysis"),
-      fMCAnalaysis(kFALSE), fMCRNG(nullptr), fMCRNGSeed(0), fMCPdf(nullptr),
+      fMCAnalaysis(kFALSE), fSeed(0), fUseCustomSeed(kFALSE), fMCPdf(nullptr),
       fMCPdfName("pdf"), fMCFlowHarmonics(nullptr),
       fMCNumberOfParticlesPerEventFluctuations(kFALSE),
       fMCNumberOfParticlesPerEvent(500), fMCCorrelators({}),
@@ -99,7 +99,7 @@ AliAnalysisTaskForStudents::AliAnalysisTaskForStudents()
       fFinalResultsList(nullptr), fFinalResultsListName("FinalResults"),
       /* flags for MC analysis */
       fMCAnalysisList(nullptr), fMCAnalysisListName("MCAnalysis"),
-      fMCAnalaysis(kFALSE), fMCRNG(nullptr), fMCRNGSeed(0), fMCPdf(nullptr),
+      fMCAnalaysis(kFALSE), fSeed(0), fUseCustomSeed(kFALSE), fMCPdf(nullptr),
       fMCPdfName("pdf"), fMCFlowHarmonics(nullptr),
       fMCNumberOfParticlesPerEventFluctuations(kFALSE),
       fMCNumberOfParticlesPerEvent(500), fMCCorrelators({}),
@@ -122,11 +122,8 @@ AliAnalysisTaskForStudents::~AliAnalysisTaskForStudents() {
     delete fHistList;
   }
 
-  /* cleanup after MC Analysis */
-  if (fMCRNG) {
-    delete fMCRNG;
-  }
-  if (fMCPdf) {
+  if (fMCAnalaysis) {
+    delete gRandom;
     delete fMCPdf;
   }
 };
@@ -631,9 +628,9 @@ void AliAnalysisTaskForStudents::BookFinalResultProfiles() {
 void AliAnalysisTaskForStudents::BookMCObjects() {
   /* book objects need for MC analysis */
 
-  /* create RNG */
-  fMCRNG = new TRandom3(fMCRNGSeed);
-  fMCAnalysisList->Add(fMCRNG);
+  // setup RNG
+  delete gRandom;
+  fUseCustomSeed ? gRandom = new TRandom3(fSeed) : gRandom = new TRandom3(0);
 
   /* protect at some point if fMCFlowHarmonics is empty */
   if (!fMCFlowHarmonics) {
@@ -771,7 +768,7 @@ void AliAnalysisTaskForStudents::MCOnTheFlyExec() {
     if (fUseWeights) {
       if (Phi > fReducedAcceptanceRange[kMIN] &&
           Phi < fReducedAcceptanceRange[kMAX]) {
-        if (fMCRNG->Uniform() < fReducedAcceptance) {
+        if (gRandom->Uniform() < fReducedAcceptance) {
           fPhi.push_back(Phi);
           fWeights.push_back(1 / fReducedAcceptance);
         }
@@ -889,7 +886,7 @@ Bool_t AliAnalysisTaskForStudents::SurviveTrackCut(AliAODTrack *aTrack) {
 void AliAnalysisTaskForStudents::MCPdfSymmetryPlanesSetup() {
   /* set symmetry planes randomly on a event by event basis */
   /* Double_t Psi = 0; */
-  Double_t Psi = fMCRNG->Uniform(0., TMath::TwoPi());
+  Double_t Psi = gRandom->Uniform(0., TMath::TwoPi());
   for (int i = 0; i < fMCFlowHarmonics->GetSize(); ++i) {
     fMCPdf->SetParameter(2 * (i + 1), Psi);
   }
@@ -901,8 +898,8 @@ Int_t AliAnalysisTaskForStudents::GetMCNumberOfParticlesPerEvent() {
     return fMCNumberOfParticlesPerEvent;
   }
 
-  return fMCRNG->Uniform(fMCNumberOfParticlesPerEventRange[kMIN],
-                         fMCNumberOfParticlesPerEventRange[kMAX]);
+  return gRandom->Uniform(fMCNumberOfParticlesPerEventRange[kMIN],
+                          fMCNumberOfParticlesPerEventRange[kMAX]);
 };
 
 void AliAnalysisTaskForStudents::CalculateQvectors() {

@@ -2,7 +2,7 @@
  * File              : AliAnalysisTaskForStudents.h
  * Author            : Anton Riedel <anton.riedel@tum.de>
  * Date              : 07.05.2021
- * Last Modified Date: 07.06.2021
+ * Last Modified Date: 08.06.2021
  * Last Modified By  : Anton Riedel <anton.riedel@tum.de>
  */
 
@@ -191,9 +191,9 @@ public:
 
   /* setters and getters for MC analsys */
   void SetMCAnalysis(Bool_t mc) { this->fMCAnalaysis = mc; }
-  void SetMCRNGSeed(UInt_t seed) {
-    this->fMCRNGSeed = seed;
-    gRandom->SetSeed(seed);
+  void SetUseCustomSeed(const UInt_t seed) {
+    this->fSeed = seed;
+    this->fUseCustomSeed = kTRUE;
   }
   void SetMCFlowHarmonics(TArrayD *array) {
     if (array->GetSize() > kMaxHarmonic) {
@@ -276,8 +276,8 @@ private:
   TList *fMCAnalysisList;
   TString fMCAnalysisListName;
   Bool_t fMCAnalaysis;
-  TRandom3 *fMCRNG;
-  UInt_t fMCRNGSeed;
+  UInt_t fSeed;
+  Bool_t fUseCustomSeed;
   TF1 *fMCPdf;
   TString fMCPdfName;
   Double_t fMCPdfRange[LAST_EMINMAX];
